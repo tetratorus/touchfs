@@ -6,73 +6,26 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/crypto/pbkdf2"
 )
 
 const (
-	magicPrefix = "#touchfs:v1:"
-	keyDirRel   = ".config/touchfs/keys"
+	magic      = "#touchfs\n"
+	pbkdf2Iter = 600_000
+	keyLen     = 32
 )
 
-// generateKey returns 32 cryptographically random bytes for AES-256.
-func generateKey() ([]byte, error) {
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		return nil, fmt.Errorf("generate key: %w", err)
-	}
-	return key, nil
-}
-
-// keyID returns the hex-encoded SHA-256 of the absolute path.
-func keyID(absPath string) string {
-	h := sha256.Sum256([]byte(absPath))
-	return hex.EncodeToString(h[:])
-}
-
-// keyDir returns the path to ~/.config/touchfs/keys/.
-func keyDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("get home dir: %w", err)
-	}
-	return filepath.Join(home, keyDirRel), nil
-}
-
-// saveKey writes a key to ~/.config/touchfs/keys/<id>.key with mode 0600.
-func saveKey(id string, key []byte) error {
-	dir, err := keyDir()
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("create key dir: %w", err)
-	}
-	path := filepath.Join(dir, id+".key")
-	if err := os.WriteFile(path, key, 0600); err != nil {
-		return fmt.Errorf("write key: %w", err)
-	}
-	return nil
-}
-
-// loadKey reads a key from ~/.config/touchfs/keys/<id>.key.
-func loadKey(id string) ([]byte, error) {
-	dir, err := keyDir()
-	if err != nil {
-		return nil, err
-	}
-	path := filepath.Join(dir, id+".key")
-	key, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read key %s: %w", id, err)
-	}
-	if len(key) != 32 {
-		return nil, fmt.Errorf("invalid key length %d for %s", len(key), id)
-	}
-	return key, nil
+// deriveKey derives a 32-byte AES-256 key from a password using PBKDF2-SHA256.
+// Only used once during initial setup — the derived key is stored in Keychain.
+func deriveKey(password []byte) []byte {
+	// Fixed salt derived from app identity — the password is the only secret.
+	salt := []byte("touchfs-v1-salt")
+	return pbkdf2.Key(password, salt, pbkdf2Iter, keyLen, sha256.New)
 }
 
 // encrypt encrypts plaintext using AES-256-GCM. Returns nonce‖ciphertext‖tag.
@@ -89,7 +42,6 @@ func encrypt(plaintext, key []byte) ([]byte, error) {
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, fmt.Errorf("generate nonce: %w", err)
 	}
-	// Seal appends ciphertext+tag after nonce
 	return gcm.Seal(nonce, nonce, plaintext, nil), nil
 }
 
@@ -115,8 +67,8 @@ func decrypt(data, key []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-// sealFile encrypts a file in-place, adding the touchfs header.
-func sealFile(path string) error {
+// sealFile encrypts a file in-place.
+func sealFile(path string, key []byte) error {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return fmt.Errorf("abs path: %w", err)
@@ -131,23 +83,13 @@ func sealFile(path string) error {
 		return fmt.Errorf("read file: %w", err)
 	}
 
-	key, err := generateKey()
-	if err != nil {
-		return err
-	}
-
-	id := keyID(absPath)
-	if err := saveKey(id, key); err != nil {
-		return err
-	}
-
 	encrypted, err := encrypt(plaintext, key)
 	if err != nil {
 		return err
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(encrypted)
-	content := magicPrefix + id + "\n" + encoded + "\n"
+	content := magic + encoded + "\n"
 
 	info, err := os.Stat(absPath)
 	if err != nil {
@@ -161,23 +103,18 @@ func sealFile(path string) error {
 }
 
 // unsealFile decrypts a sealed file back to plaintext.
-func unsealFile(path string) error {
+func unsealFile(path string, key []byte) error {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return fmt.Errorf("abs path: %w", err)
 	}
 
-	id, encrypted, err := parseSealedFile(absPath)
+	sfi, err := parseSealedFile(absPath)
 	if err != nil {
 		return err
 	}
 
-	key, err := loadKey(id)
-	if err != nil {
-		return err
-	}
-
-	plaintext, err := decrypt(encrypted, key)
+	plaintext, err := decrypt(sfi.encrypted, key)
 	if err != nil {
 		return err
 	}
@@ -201,49 +138,40 @@ func isSealedFile(path string) bool {
 	}
 	defer f.Close()
 
-	buf := make([]byte, len(magicPrefix))
+	buf := make([]byte, len(magic))
 	n, err := f.Read(buf)
-	if err != nil || n < len(magicPrefix) {
+	if err != nil || n < len(magic) {
 		return false
 	}
-	return string(buf) == magicPrefix
+	return string(buf) == magic
 }
 
-// parseSealedFile reads a sealed file and returns the key ID and encrypted bytes.
-func parseSealedFile(path string) (string, []byte, error) {
+// parseSealedFile reads a sealed file and returns its encrypted bytes.
+func parseSealedFile(path string) (*sealedFileInfo, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", nil, fmt.Errorf("read sealed file: %w", err)
+		return nil, fmt.Errorf("read sealed file: %w", err)
 	}
 
 	content := string(data)
-	lines := strings.SplitN(content, "\n", 3)
-	if len(lines) < 2 {
-		return "", nil, fmt.Errorf("invalid sealed file format")
+	if !strings.HasPrefix(content, magic) {
+		return nil, fmt.Errorf("not a sealed file")
 	}
 
-	header := lines[0]
-	if !strings.HasPrefix(header, magicPrefix) {
-		return "", nil, fmt.Errorf("not a sealed file (missing magic header)")
-	}
-
-	id := strings.TrimPrefix(header, magicPrefix)
-	if id == "" {
-		return "", nil, fmt.Errorf("missing key ID in header")
-	}
-
-	encoded := strings.TrimSpace(lines[1])
+	encoded := strings.TrimSpace(content[len(magic):])
 	encrypted, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
-		return "", nil, fmt.Errorf("decode base64: %w", err)
+		return nil, fmt.Errorf("decode base64: %w", err)
 	}
 
-	return id, encrypted, nil
+	return &sealedFileInfo{
+		name:      filepath.Base(path),
+		encrypted: encrypted,
+	}, nil
 }
 
-// sealedFileInfo holds the metadata needed to serve a decrypted file via FUSE.
+// sealedFileInfo holds the encrypted content of a sealed file.
 type sealedFileInfo struct {
-	name      string // original filename (e.g. ".env")
-	keyID     string // key identifier
-	encrypted []byte // raw encrypted bytes (nonce‖ciphertext‖tag)
+	name      string
+	encrypted []byte
 }
