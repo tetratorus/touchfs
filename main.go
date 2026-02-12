@@ -98,6 +98,10 @@ func main() {
 func usage() {
 	fmt.Fprintf(os.Stderr, `touchfs — Touch ID-gated encrypted files
 
+On first run, you'll create a password. It's used once to derive an AES-256
+key, which is stored in macOS Keychain (Touch ID protected). After setup,
+Touch ID is all you need.
+
 Usage:
   touchfs seal   [-p] <file>   Encrypt a file in-place
   touchfs unseal [-p] <file>   Decrypt a sealed file back to plaintext
