@@ -24,7 +24,7 @@ touchfs seal [-p] <file>      # Encrypt a file in-place
 touchfs unseal [-p] <file>    # Decrypt a sealed file
 touchfs mount                 # Serve decrypted files from current working directory
 touchfs reset                 # Delete key from Keychain
-touchfs version          # Print version
+touchfs version               # Print version
 ```
 
 Use `-p` with `seal`/`unseal` to use a password instead of Touch ID.
