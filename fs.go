@@ -104,7 +104,22 @@ func (fs *SecureEnvFS) Readdir(path string,
 	return 0
 }
 
+func (fs *SecureEnvFS) Access(path string, mask uint32) int {
+	if path == "/" {
+		return 0
+	}
+	name := path[1:]
+	fs.mu.Lock()
+	_, ok := fs.encrypted[name]
+	fs.mu.Unlock()
+	if !ok {
+		return -fuse.ENOENT
+	}
+	return 0
+}
+
 func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
+	log.Printf("Open called: %s (flags=%d)", path, flags)
 	name := path[1:]
 	fs.mu.Lock()
 	info, ok := fs.encrypted[name]

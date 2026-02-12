@@ -18,6 +18,8 @@ import (
 	"golang.org/x/term"
 )
 
+var version = "dev"
+
 const xattrChunkSize = 63 * 1024 // 63 KB per chunk (APFS safe)
 
 // setSymlinkXattr stores data across one or more xattrs on a symlink.
@@ -92,6 +94,8 @@ func main() {
 		cmdSet()
 	case "reset":
 		cmdReset()
+	case "version":
+		fmt.Println(version)
 	default:
 		usage()
 	}
