@@ -1,2 +1,5 @@
-touchfs
-*.key
+touchfs.app/
+touchfs.zip
+touchfs.tar.gz
+test-keychain/
+touchfs.provisionprofile

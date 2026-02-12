@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.leonardtan.touchfs</string>
+	<string>com.bluzuli.touchfs</string>
 	<key>CFBundleName</key>
 	<string>touchfs</string>
 	<key>CFBundleExecutable</key>
