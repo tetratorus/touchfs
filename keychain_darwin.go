@@ -16,15 +16,23 @@ int touchid_auth(const char *reason) {
     NSString *nsReason = [NSString stringWithUTF8String:reason];
     __block int result = 0;
 
-    if ([ctx canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&err]) {
-        [ctx evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
-            localizedReason:nsReason
-            reply:^(BOOL success, NSError *error) {
-                result = success ? 1 : 0;
-                dispatch_semaphore_signal(sema);
-            }];
-        dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+    if (![ctx canEvaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics error:&err]) {
+        NSLog(@"touchfs: canEvaluatePolicy failed: %@", err);
+        return 0;
     }
+
+    [ctx evaluatePolicy:LAPolicyDeviceOwnerAuthenticationWithBiometrics
+        localizedReason:nsReason
+        reply:^(BOOL success, NSError *error) {
+            if (success) {
+                result = 1;
+            } else {
+                NSLog(@"touchfs: evaluatePolicy failed: %@ (code=%ld)", error.localizedDescription, (long)error.code);
+                result = 0;
+            }
+            dispatch_semaphore_signal(sema);
+        }];
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
     return result;
 }
 
