@@ -2,7 +2,7 @@
 
 Touch ID-gated encrypted files for macOS.
 
-Seal sensitive files (`.env`, credentials, configs) in-place — they become ciphertext. Mount a virtual filesystem to serve them decrypted, with Touch ID on every access.
+Seal sensitive files (`.env`, credentials, configs) in-place — they become ciphertext. Mount a virtual filesystem to serve them decrypted, gated by Touch ID.
 
 ## Install
 
@@ -35,7 +35,7 @@ Your password is used once to derive an AES-256 key via PBKDF2 (600k iterations)
 
 **Seal** replaces a file's contents with `#touchfs` + base64-encoded ciphertext (AES-256-GCM with random nonce).
 
-**Mount** creates a virtual filesystem (via [FUSE](https://github.com/macos-fuse-t/fuse-t) — lets a program pretend to be a disk). Each sealed file becomes a symlink pointing to this virtual filesystem, with its encrypted contents stored in the symlink's extended attributes (xattrs) — no extra files created. Every time a program opens a file, Touch ID is triggered. Only after authentication is the file decrypted into memory. When the file is closed, any changes are re-encrypted and saved back.
+**Mount** creates a virtual filesystem (via [FUSE](https://github.com/macos-fuse-t/fuse-t) — lets a program pretend to be a disk). Touch ID is required once to retrieve the key from Keychain. Each sealed file becomes a symlink pointing to this virtual filesystem, with its encrypted contents stored in the symlink's extended attributes (xattrs) — no extra files created. Files are decrypted on read and re-encrypted on close if modified. Unmounting wipes the key from memory.
 
 **Transparent to apps** — VSCode, `cat`, `grep`, etc. just follow the symlink. They don't know touchfs exists.
 
