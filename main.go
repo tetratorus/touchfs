@@ -94,7 +94,7 @@ func main() {
 		cmdSet()
 	case "reset":
 		cmdReset()
-	case "version":
+	case "version", "-v":
 		fmt.Println(version)
 	default:
 		usage()
@@ -114,6 +114,7 @@ Usage:
   touchfs mount                Mount FUSE, serve decrypted files from cwd
   touchfs set                  Create or update password in Keychain
   touchfs reset                Delete key from Keychain
+  touchfs version              Print version
 
 Options:
   -p    Use password instead of Touch ID/Keychain
@@ -381,10 +382,12 @@ func cmdMount() {
 	host := fuse.NewFileSystemHost(secFS)
 
 	// Clean shutdown on signal.
+	var userUnmount bool
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigCh
+		userUnmount = true
 		log.Println("Shutting down...")
 		host.Unmount()
 	}()
@@ -401,7 +404,7 @@ func cmdMount() {
 	// Cleanup: remove symlinks, restore sealed files from xattr.
 	cleanup(cwd, managed)
 
-	if !ok {
+	if !ok && !userUnmount {
 		log.Fatal("Mount failed")
 	}
 }
