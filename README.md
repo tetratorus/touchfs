@@ -69,5 +69,5 @@ If a previous `touchfs mount` was killed without cleanup (e.g. `kill -9`), the n
 
 ## TODO
 
-- **Auto-mount on login**: Register a LaunchAgent so sealed files are served automatically on startup — no need to run `touchfs mount` manually every time
+- **Password fallback**: Allow decryption via password as a fallback if Touch ID is not working
 - **Homebrew formula**: `brew tap lentan/touchfs && brew install touchfs` for easy distribution

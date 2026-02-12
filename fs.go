@@ -1,87 +1,76 @@
 package main
 
 import (
+	"encoding/base64"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/winfsp/cgofuse/fuse"
 )
 
-const authTTL = 5 * time.Second
+// openFile tracks the state of a single open file descriptor.
+type openFile struct {
+	name      string
+	data      []byte // decrypted content
+	dirty     bool
+}
 
-// SecureEnvFS is a read-only FUSE filesystem that serves decrypted versions
-// of sealed files, gated by Touch ID authentication.
+// SecureEnvFS is a FUSE filesystem that serves encrypted files,
+// decrypting on open (after Touch ID) and re-encrypting on close.
 type SecureEnvFS struct {
 	fuse.FileSystemBase
-	files map[string]*sealedFileInfo // filename → sealed info
-
-	// cache stores decrypted content with a TTL
-	cacheMu    sync.Mutex
-	cache      map[string][]byte
-	cacheTime  map[string]time.Time
-	cacheTTL   time.Duration
+	mu        sync.Mutex
+	key       []byte                     // AES key (from Keychain at mount)
+	encrypted map[string]*sealedFileInfo // filename → sealed info
+	handles   map[uint64]*openFile       // fh → open file state
+	nextFH    uint64
+	onDirty   func(name string, sealed []byte) // callback to update xattr on write
 }
 
-// NewSecureEnvFS creates a filesystem serving the given sealed files.
-func NewSecureEnvFS(files map[string]*sealedFileInfo) *SecureEnvFS {
+// NewSecureEnvFS creates a filesystem with encrypted file contents and the AES key.
+func NewSecureEnvFS(files map[string]*sealedFileInfo, key []byte) *SecureEnvFS {
 	return &SecureEnvFS{
-		files:     files,
-		cache:     make(map[string][]byte),
-		cacheTime: make(map[string]time.Time),
-		cacheTTL:  30 * time.Second,
+		key:       key,
+		encrypted: files,
+		handles:   make(map[uint64]*openFile),
+		nextFH:    1,
 	}
-}
-
-// decryptFile returns the decrypted content for a sealed file, using a cache.
-func (fs *SecureEnvFS) decryptFile(name string) ([]byte, error) {
-	fs.cacheMu.Lock()
-	defer fs.cacheMu.Unlock()
-
-	if data, ok := fs.cache[name]; ok {
-		if time.Since(fs.cacheTime[name]) < fs.cacheTTL {
-			return data, nil
-		}
-		delete(fs.cache, name)
-		delete(fs.cacheTime, name)
-	}
-
-	info := fs.files[name]
-	key, err := loadKey(info.keyID)
-	if err != nil {
-		return nil, err
-	}
-	plaintext, err := decrypt(info.encrypted, key)
-	if err != nil {
-		return nil, err
-	}
-
-	fs.cache[name] = plaintext
-	fs.cacheTime[name] = time.Now()
-	return plaintext, nil
 }
 
 func (fs *SecureEnvFS) Getattr(path string, stat *fuse.Stat_t, fh uint64) int {
 	if path == "/" {
-		stat.Mode = fuse.S_IFDIR | 0555
+		stat.Mode = fuse.S_IFDIR | 0755
 		stat.Nlink = 2
 		return 0
 	}
 
-	name := path[1:] // strip leading "/"
-	info, ok := fs.files[name]
+	name := path[1:]
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
+	// If there's an open handle for this file, use its size.
+	for _, of := range fs.handles {
+		if of.name == name {
+			stat.Mode = fuse.S_IFREG | 0644
+			stat.Nlink = 1
+			stat.Size = int64(len(of.data))
+			return 0
+		}
+	}
+
+	// Otherwise, decrypt to get accurate size.
+	info, ok := fs.encrypted[name]
 	if !ok {
 		return -fuse.ENOENT
 	}
 
-	// We need the decrypted size for accurate stat
-	plaintext, err := fs.decryptFile(info.name)
+	plaintext, err := decrypt(info.encrypted, fs.key)
 	if err != nil {
 		log.Printf("decrypt error for %s: %v", name, err)
 		return -fuse.EIO
 	}
 
-	stat.Mode = fuse.S_IFREG | 0444
+	stat.Mode = fuse.S_IFREG | 0644
 	stat.Nlink = 1
 	stat.Size = int64(len(plaintext))
 	return 0
@@ -97,48 +86,143 @@ func (fs *SecureEnvFS) Readdir(path string,
 
 	fill(".", nil, 0)
 	fill("..", nil, 0)
-	for name := range fs.files {
+	fs.mu.Lock()
+	for name := range fs.encrypted {
 		fill(name, nil, 0)
 	}
+	fs.mu.Unlock()
 	return 0
 }
 
 func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	name := path[1:]
-	if _, ok := fs.files[name]; !ok {
+	fs.mu.Lock()
+	info, ok := fs.encrypted[name]
+	fs.mu.Unlock()
+	if !ok {
 		return -fuse.ENOENT, 0
 	}
 
-	ok, err := authenticateTouchID("touchfs: access "+name, authTTL)
-	if err != nil {
-		log.Printf("Touch ID error: %v", err)
-		return -fuse.EACCES, 0
-	}
-	if !ok {
+	// Touch ID gate via LAContext.
+	if !authenticateTouchID("touchfs: access " + name) {
 		log.Printf("Touch ID denied for %s", name)
 		return -fuse.EACCES, 0
 	}
 
-	log.Printf("Touch ID OK — serving %s", name)
-	return 0, 0
+	// Decrypt on open.
+	plaintext, err := decrypt(info.encrypted, fs.key)
+	if err != nil {
+		log.Printf("decrypt error for %s: %v", name, err)
+		return -fuse.EIO, 0
+	}
+
+	fs.mu.Lock()
+	fh := fs.nextFH
+	fs.nextFH++
+	fs.handles[fh] = &openFile{
+		name: name,
+		data: plaintext,
+	}
+	fs.mu.Unlock()
+
+	log.Printf("Touch ID OK — opened %s (fh=%d)", name, fh)
+	return 0, fh
 }
 
 func (fs *SecureEnvFS) Read(path string, buff []byte, ofst int64, fh uint64) int {
-	name := path[1:]
-	info, ok := fs.files[name]
+	fs.mu.Lock()
+	of, ok := fs.handles[fh]
+	fs.mu.Unlock()
 	if !ok {
-		return -fuse.ENOENT
+		return -fuse.EBADF
 	}
 
-	plaintext, err := fs.decryptFile(info.name)
-	if err != nil {
-		log.Printf("decrypt error for %s: %v", name, err)
-		return -fuse.EIO
-	}
-
-	if ofst >= int64(len(plaintext)) {
+	if ofst >= int64(len(of.data)) {
 		return 0
 	}
-	n := copy(buff, plaintext[ofst:])
+	n := copy(buff, of.data[ofst:])
 	return n
+}
+
+func (fs *SecureEnvFS) Write(path string, buff []byte, ofst int64, fh uint64) int {
+	fs.mu.Lock()
+	of, ok := fs.handles[fh]
+	if !ok {
+		fs.mu.Unlock()
+		return -fuse.EBADF
+	}
+
+	end := ofst + int64(len(buff))
+	if end > int64(len(of.data)) {
+		grown := make([]byte, end)
+		copy(grown, of.data)
+		of.data = grown
+	}
+	copy(of.data[ofst:], buff)
+	of.dirty = true
+	fs.mu.Unlock()
+	return len(buff)
+}
+
+func (fs *SecureEnvFS) Truncate(path string, size int64, fh uint64) int {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
+	// Try file handle first.
+	if fh != ^uint64(0) {
+		of, ok := fs.handles[fh]
+		if ok {
+			if size < int64(len(of.data)) {
+				of.data = of.data[:size]
+			} else if size > int64(len(of.data)) {
+				grown := make([]byte, size)
+				copy(grown, of.data)
+				of.data = grown
+			}
+			of.dirty = true
+			return 0
+		}
+	}
+
+	// Path-based truncate (no open handle).
+	name := path[1:]
+	if _, ok := fs.encrypted[name]; !ok {
+		return -fuse.ENOENT
+	}
+	return 0
+}
+
+func (fs *SecureEnvFS) Release(path string, fh uint64) int {
+	fs.mu.Lock()
+	of, ok := fs.handles[fh]
+	if !ok {
+		fs.mu.Unlock()
+		return 0
+	}
+	delete(fs.handles, fh)
+	fs.mu.Unlock()
+
+	if of.dirty {
+		// Re-encrypt and update stored encrypted content.
+		enc, err := encrypt(of.data, fs.key)
+		if err != nil {
+			log.Printf("re-encrypt error for %s: %v", of.name, err)
+			return -fuse.EIO
+		}
+
+		fs.mu.Lock()
+		if info, ok := fs.encrypted[of.name]; ok {
+			info.encrypted = enc
+		}
+		fs.mu.Unlock()
+
+		// Notify main to update xattr.
+		if fs.onDirty != nil {
+			sealed := magic + base64.StdEncoding.EncodeToString(enc) + "\n"
+			fs.onDirty(of.name, []byte(sealed))
+		}
+
+		log.Printf("Re-encrypted %s on close", of.name)
+	}
+	return 0
 }
