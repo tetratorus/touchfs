@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"log"
 	"sync"
@@ -15,6 +16,7 @@ const authTTL = 500 * time.Millisecond
 type openFile struct {
 	name      string
 	data      []byte // decrypted content
+	origData  []byte // original plaintext at open time
 	dirty     bool
 }
 
@@ -156,9 +158,12 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	fs.mu.Lock()
 	fh := fs.nextFH
 	fs.nextFH++
+	orig := make([]byte, len(plaintext))
+	copy(orig, plaintext)
 	fs.handles[fh] = &openFile{
-		name: name,
-		data: plaintext,
+		name:     name,
+		data:     plaintext,
+		origData: orig,
 	}
 	fs.mu.Unlock()
 
@@ -239,7 +244,7 @@ func (fs *SecureEnvFS) Release(path string, fh uint64) int {
 	delete(fs.handles, fh)
 	fs.mu.Unlock()
 
-	if of.dirty {
+	if of.dirty && !bytes.Equal(of.data, of.origData) {
 		// Re-encrypt and update stored encrypted content.
 		enc, err := encrypt(of.data, fs.key)
 		if err != nil {
