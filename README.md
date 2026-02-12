@@ -19,11 +19,11 @@ brew tap tetratorus/tap && brew install --cask touchfs
 ## Usage
 
 ```
-touchfs set              # Create password (one time setup)
+touchfs set                   # Create password (one time setup)
 touchfs seal [-p] <file>      # Encrypt a file in-place
 touchfs unseal [-p] <file>    # Decrypt a sealed file
-touchfs mount            # Mount FUSE, serve decrypted files from current working directory
-touchfs reset            # Delete key from Keychain
+touchfs mount                 # Serve decrypted files from current working directory
+touchfs reset                 # Delete key from Keychain
 touchfs version          # Print version
 ```
 
