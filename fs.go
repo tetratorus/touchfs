@@ -41,6 +41,12 @@ func (fs *SecureEnvFS) Getattr(path string, stat *fuse.Stat_t, fh uint64) int {
 	if path == "/" {
 		stat.Mode = fuse.S_IFDIR | 0755
 		stat.Nlink = 2
+		// Use first file's ownership for root dir.
+		for _, info := range fs.encrypted {
+			stat.Uid = info.uid
+			stat.Gid = info.gid
+			break
+		}
 		return 0
 	}
 
@@ -48,31 +54,35 @@ func (fs *SecureEnvFS) Getattr(path string, stat *fuse.Stat_t, fh uint64) int {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
-	// If there's an open handle for this file, use its size.
-	for _, of := range fs.handles {
-		if of.name == name {
-			stat.Mode = fuse.S_IFREG | 0644
-			stat.Nlink = 1
-			stat.Size = int64(len(of.data))
-			return 0
-		}
-	}
-
-	// Otherwise, decrypt to get accurate size.
 	info, ok := fs.encrypted[name]
 	if !ok {
 		return -fuse.ENOENT
 	}
 
+	// If there's an open handle for this file, use its size.
+	for _, of := range fs.handles {
+		if of.name == name {
+			stat.Mode = fuse.S_IFREG | uint32(info.mode.Perm())
+			stat.Nlink = 1
+			stat.Size = int64(len(of.data))
+			stat.Uid = info.uid
+			stat.Gid = info.gid
+			return 0
+		}
+	}
+
+	// Otherwise, decrypt to get accurate size.
 	plaintext, err := decrypt(info.encrypted, fs.key)
 	if err != nil {
 		log.Printf("decrypt error for %s: %v", name, err)
 		return -fuse.EIO
 	}
 
-	stat.Mode = fuse.S_IFREG | 0644
+	stat.Mode = fuse.S_IFREG | uint32(info.mode.Perm())
 	stat.Nlink = 1
 	stat.Size = int64(len(plaintext))
+	stat.Uid = info.uid
+	stat.Gid = info.gid
 	return 0
 }
 
