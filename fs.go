@@ -4,9 +4,12 @@ import (
 	"encoding/base64"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/winfsp/cgofuse/fuse"
 )
+
+const authTTL = 500 * time.Millisecond
 
 // openFile tracks the state of a single open file descriptor.
 type openFile struct {
@@ -24,6 +27,7 @@ type SecureEnvFS struct {
 	encrypted map[string]*sealedFileInfo // filename → sealed info
 	handles   map[uint64]*openFile       // fh → open file state
 	nextFH    uint64
+	lastAuth  time.Time                  // last successful Touch ID timestamp
 	onDirty   func(name string, sealed []byte) // callback to update xattr on write
 }
 
@@ -128,10 +132,18 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 		return -fuse.ENOENT, 0
 	}
 
-	// Touch ID gate via LAContext.
-	if !authenticateTouchID("touchfs: access " + name) {
-		log.Printf("Touch ID denied for %s", name)
-		return -fuse.EACCES, 0
+	// Touch ID gate via LAContext (skip if within TTL).
+	fs.mu.Lock()
+	cached := time.Since(fs.lastAuth) < authTTL
+	fs.mu.Unlock()
+	if !cached {
+		if !authenticateTouchID("touchfs: access " + name) {
+			log.Printf("Touch ID denied for %s", name)
+			return -fuse.EACCES, 0
+		}
+		fs.mu.Lock()
+		fs.lastAuth = time.Now()
+		fs.mu.Unlock()
 	}
 
 	// Decrypt on open.
