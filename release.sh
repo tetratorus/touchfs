@@ -10,7 +10,7 @@ VERSION=$1
 TAP_DIR="/tmp/homebrew-tap"
 
 echo "=== Building ==="
-make dist
+make dist VERSION="$VERSION"
 
 echo "=== Notarizing ==="
 rm -f touchfs.zip
