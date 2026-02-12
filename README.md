@@ -31,14 +31,14 @@ Use `-p` with `seal`/`unseal` to use a password instead of Touch ID.
 
 ### Example
 
-```bash
-cd ~/project
-touchfs seal .env            # .env is now ciphertext on disk
-touchfs mount                # Touch ID prompt → mounts virtual filesystem
-                             # .env becomes a symlink to the mount
-                             # apps read/write .env as normal, gated by Touch ID
+```
+$ cd ~/project
+$ touchfs seal .env            # .env is now ciphertext on disk
+$ touchfs mount                # Touch ID prompt → mounts virtual filesystem
+                               # .env becomes a symlink to the mount
+                               # apps read/write .env as normal, gated by Touch ID
 # work as usual — editors, scripts, etc. all see the decrypted .env
-^C                           # Ctrl+C unmounts and restores .env as ciphertext
+^C                             # Ctrl+C unmounts and restores .env as ciphertext
 ```
 
 While mounted, `touchfs` runs in the foreground. Sealed files become symlinks that apps follow transparently. When you're done, Ctrl+C unmounts, restores the encrypted files, and wipes the key from memory.
