@@ -88,6 +88,8 @@ func main() {
 		cmdMount()
 	case "unseal":
 		cmdUnseal()
+	case "set":
+		cmdSet()
 	case "reset":
 		cmdReset()
 	default:
@@ -106,6 +108,7 @@ Usage:
   touchfs seal   [-p] <file>   Encrypt a file in-place
   touchfs unseal [-p] <file>   Decrypt a sealed file back to plaintext
   touchfs mount                Mount FUSE, serve decrypted files from cwd
+  touchfs set                  Create or update password in Keychain
   touchfs reset                Delete key from Keychain
 
 Options:
@@ -258,6 +261,31 @@ func cmdUnseal() {
 		log.Fatalf("unseal: %v", err)
 	}
 	fmt.Printf("Unsealed %s\n", path)
+}
+
+// cmdSet creates or updates the password-derived key in the Keychain.
+func cmdSet() {
+	pw, err := promptPassword("Password: ")
+	if err != nil {
+		log.Fatalf("password: %v", err)
+	}
+	if len(pw) == 0 {
+		log.Fatal("password cannot be empty")
+	}
+
+	confirm, err := promptPassword("Confirm password: ")
+	if err != nil {
+		log.Fatalf("password: %v", err)
+	}
+	if !bytes.Equal(pw, confirm) {
+		log.Fatal("passwords do not match")
+	}
+
+	key := deriveKey(pw)
+	if err := keychainStore(key); err != nil {
+		log.Fatalf("keychain: %v", err)
+	}
+	fmt.Println("Key stored in Keychain (Touch ID protected)")
 }
 
 // cmdReset deletes the key from the Keychain.
