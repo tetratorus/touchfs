@@ -20,8 +20,8 @@ brew tap tetratorus/tap && brew install --cask touchfs
 
 ```
 touchfs set              # Create password (one time setup)
-touchfs seal <file>      # Encrypt a file in-place
-touchfs unseal <file>    # Decrypt a sealed file
+touchfs seal [-p] <file>      # Encrypt a file in-place
+touchfs unseal [-p] <file>    # Decrypt a sealed file
 touchfs mount            # Mount FUSE, serve decrypted files from current working directory
 touchfs reset            # Delete key from Keychain
 touchfs version          # Print version
@@ -37,7 +37,7 @@ $ touchfs seal .env            # .env is now ciphertext on disk
 $ touchfs mount                # Touch ID prompt → mounts virtual filesystem
                                # .env becomes a symlink to the mount
                                # apps read/write .env as normal, gated by Touch ID
-# work as usual — editors, scripts, etc. all see the decrypted .env
+...
 ^C                             # Ctrl+C unmounts and restores .env as ciphertext
 ```
 
