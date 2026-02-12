@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -146,8 +147,14 @@ func isSealedFile(path string) bool {
 	return string(buf) == magic
 }
 
-// parseSealedFile reads a sealed file and returns its encrypted bytes.
+// parseSealedFile reads a sealed file and returns its encrypted bytes + original stat.
 func parseSealedFile(path string) (*sealedFileInfo, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("stat sealed file: %w", err)
+	}
+	sys := fi.Sys().(*syscall.Stat_t)
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read sealed file: %w", err)
@@ -167,6 +174,9 @@ func parseSealedFile(path string) (*sealedFileInfo, error) {
 	return &sealedFileInfo{
 		name:      filepath.Base(path),
 		encrypted: encrypted,
+		mode:      fi.Mode(),
+		uid:       sys.Uid,
+		gid:       sys.Gid,
 	}, nil
 }
 
@@ -174,4 +184,7 @@ func parseSealedFile(path string) (*sealedFileInfo, error) {
 type sealedFileInfo struct {
 	name      string
 	encrypted []byte
+	mode      os.FileMode
+	uid       uint32
+	gid       uint32
 }
