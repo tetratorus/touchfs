@@ -218,6 +218,10 @@ func cmdSeal() {
 		}
 	}
 
+	if fi, err := os.Lstat(path); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		log.Fatalf("Symlink detected: seal/unseal cannot work on mounted files. Unmount first (Ctrl+C the running mount), then try again.")
+	}
+
 	if err := sealFile(path, key); err != nil {
 		log.Fatalf("seal: %v", err)
 	}
@@ -240,6 +244,10 @@ func cmdUnseal() {
 			os.Exit(1)
 		}
 		path = os.Args[3]
+	}
+
+	if fi, err := os.Lstat(path); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		log.Fatalf("Symlink detected: seal/unseal cannot work on mounted files. Unmount first (Ctrl+C the running mount), then try again.")
 	}
 
 	if !isSealedFile(path) {
@@ -381,7 +389,8 @@ func cmdMount() {
 		host.Unmount()
 	}()
 
-	log.Printf("Mounting touchfs at %s", mountpoint)
+	log.Printf("touchfs %s", version)
+	log.Printf("Mounting at %s", mountpoint)
 	for _, name := range managed {
 		log.Printf("  %s → %s/%s", name, mountpoint, name)
 	}
