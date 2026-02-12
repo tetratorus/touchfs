@@ -99,10 +99,13 @@ func usage() {
 	fmt.Fprintf(os.Stderr, `touchfs — Touch ID-gated encrypted files
 
 Usage:
-  touchfs seal   <file>   Encrypt a file in-place
-  touchfs mount            Mount FUSE, serve decrypted files from cwd
-  touchfs unseal <file>   Decrypt a sealed file back to plaintext
-  touchfs reset            Delete key from Keychain
+  touchfs seal   [-p] <file>   Encrypt a file in-place
+  touchfs unseal [-p] <file>   Decrypt a sealed file back to plaintext
+  touchfs mount                Mount FUSE, serve decrypted files from cwd
+  touchfs reset                Delete key from Keychain
+
+Options:
+  -p    Use password instead of Touch ID/Keychain
 `)
 	os.Exit(1)
 }
@@ -175,14 +178,33 @@ func getKey() ([]byte, error) {
 // cmdSeal encrypts a file in-place.
 func cmdSeal() {
 	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Usage: touchfs seal <file>\n")
+		fmt.Fprintf(os.Stderr, "Usage: touchfs seal [-p] <file>\n")
 		os.Exit(1)
 	}
-	path := os.Args[2]
 
-	key, err := ensureKey()
-	if err != nil {
-		log.Fatalf("key: %v", err)
+	usePassword := os.Args[2] == "-p"
+	path := os.Args[2]
+	if usePassword {
+		if len(os.Args) < 4 {
+			fmt.Fprintf(os.Stderr, "Usage: touchfs seal [-p] <file>\n")
+			os.Exit(1)
+		}
+		path = os.Args[3]
+	}
+
+	var key []byte
+	var err error
+	if usePassword {
+		pw, err := promptPassword("Password: ")
+		if err != nil {
+			log.Fatalf("password: %v", err)
+		}
+		key = deriveKey(pw)
+	} else {
+		key, err = ensureKey()
+		if err != nil {
+			log.Fatalf("key: %v", err)
+		}
 	}
 
 	if err := sealFile(path, key); err != nil {
@@ -195,18 +217,37 @@ func cmdSeal() {
 // cmdUnseal decrypts a sealed file.
 func cmdUnseal() {
 	if len(os.Args) < 3 {
-		fmt.Fprintf(os.Stderr, "Usage: touchfs unseal <file>\n")
+		fmt.Fprintf(os.Stderr, "Usage: touchfs unseal [-p] <file>\n")
 		os.Exit(1)
 	}
+
+	usePassword := os.Args[2] == "-p"
 	path := os.Args[2]
+	if usePassword {
+		if len(os.Args) < 4 {
+			fmt.Fprintf(os.Stderr, "Usage: touchfs unseal [-p] <file>\n")
+			os.Exit(1)
+		}
+		path = os.Args[3]
+	}
 
 	if !isSealedFile(path) {
 		log.Fatalf("%s is not a sealed file", path)
 	}
 
-	key, err := getKey()
-	if err != nil {
-		log.Fatalf("key: %v", err)
+	var key []byte
+	var err error
+	if usePassword {
+		pw, err := promptPassword("Password: ")
+		if err != nil {
+			log.Fatalf("password: %v", err)
+		}
+		key = deriveKey(pw)
+	} else {
+		key, err = getKey()
+		if err != nil {
+			log.Fatalf("key: %v", err)
+		}
 	}
 
 	if err := unsealFile(path, key); err != nil {

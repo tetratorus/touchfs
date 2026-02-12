@@ -3,14 +3,14 @@
 <plist version="1.0">
 <dict>
 	<key>com.apple.application-identifier</key>
-	<string>X44L3QQYVR.com.leonardtan.touchfs</string>
+	<string>X44L3QQYVR.com.bluzuli.touchfs</string>
 	<key>com.apple.developer.team-identifier</key>
 	<string>X44L3QQYVR</string>
 	<key>com.apple.security.cs.disable-library-validation</key>
 	<true/>
 	<key>keychain-access-groups</key>
 	<array>
-		<string>X44L3QQYVR.com.leonardtan.touchfs</string>
+		<string>X44L3QQYVR.com.bluzuli.touchfs</string>
 	</array>
 </dict>
 </plist>

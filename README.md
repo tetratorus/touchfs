@@ -1,21 +1,27 @@
 # touchfs
 
-Touch ID-gated encrypted files. Seal sensitive files (`.env`, credentials, configs) in-place — they become ciphertext with a magic header. Mount a FUSE filesystem that serves them decrypted, gated by Touch ID.
+Touch ID-gated encrypted files. Seal sensitive files (`.env`, credentials, configs) in-place — they become ciphertext with a magic header. Mount a FUSE filesystem that serves them decrypted, gated by Touch ID on every access.
 
 The encrypted file keeps its original name, so `.gitignore` still works. If accidentally committed, it's just ciphertext.
 
-## Requirements
-
-- macOS with Touch ID
-- [FUSE-T](https://www.fuse-t.org/) (`brew install --cask macfuse`)
-
-## Build
+## Install
 
 ```bash
-go build -o touchfs .
+brew tap tetratorus/tap
+brew install --cask touchfs
 ```
 
+Requires [FUSE-T](https://www.fuse-t.org/): `brew install --cask fuse-t`
+
 ## Usage
+
+### First time setup
+
+```bash
+touchfs seal .env
+```
+
+On first run, you'll create a password. The password is used once to derive an AES-256 key via PBKDF2, then the key is stored in macOS Keychain with Touch ID protection. You'll never need the password again.
 
 ### Seal a file
 
@@ -26,11 +32,9 @@ touchfs seal .env
 Encrypts `.env` in-place with AES-256-GCM. The file now looks like:
 
 ```
-#touchfs:v1:a3f8...key-id
+#touchfs
 iy522PKvoz9Whp9xAmmnFtQz5RJw8a+7G8LTTb19...
 ```
-
-A 32-byte encryption key is stored at `~/.config/touchfs/keys/<key-id>.key`.
 
 ### Mount (serve decrypted files via FUSE)
 
@@ -41,11 +45,12 @@ touchfs mount
 
 This:
 1. Scans the current directory for sealed files
-2. Renames each `<file>` to `<file>.touchfs` (backup)
-3. Mounts a read-only FUSE filesystem at `/tmp/touchfs/<hash>/`
-4. Symlinks `<file>` to the FUSE mount point
-5. First `cat <file>` triggers Touch ID (5-second cache)
-6. Ctrl+C unmounts and restores the encrypted files
+2. Retrieves the AES key from Keychain (Touch ID)
+3. Replaces each sealed file with a symlink to a FUSE mount
+4. Every file open triggers Touch ID via LAContext
+5. Files are decrypted on open, re-encrypted on close
+6. Writes are supported — edits are re-encrypted when the file is closed
+7. Ctrl+C unmounts and restores the encrypted files
 
 ### Unseal (permanently decrypt)
 
@@ -53,21 +58,42 @@ This:
 touchfs unseal .env
 ```
 
-Touch ID prompt, then decrypts the file back to plaintext.
+Touch ID retrieves key from Keychain, then decrypts the file back to plaintext.
+
+### Password fallback
+
+Use `-p` to seal/unseal with a password instead of Touch ID:
+
+```bash
+touchfs seal -p .env
+touchfs unseal -p .env
+```
+
+### Reset
+
+Delete the key from Keychain:
+
+```bash
+touchfs reset
+```
 
 ### Crash recovery
 
-If a previous `touchfs mount` was killed without cleanup (e.g. `kill -9`), the next `touchfs mount` automatically detects orphaned `.touchfs` backups and restores them before proceeding.
+If a previous `touchfs mount` was killed without cleanup (e.g. `kill -9`), the next `touchfs mount` automatically detects orphaned symlinks and restores the sealed files from xattr.
 
 ## How it works
 
-- **Encryption**: AES-256-GCM via Go stdlib (`crypto/aes` + `crypto/cipher`)
-- **Key storage**: `~/.config/touchfs/keys/` — one 32-byte key file per sealed file, mode 0600
-- **Key ID**: SHA-256 of the file's absolute path at seal time
-- **FUSE**: Read-only filesystem via [cgofuse](https://github.com/winfsp/cgofuse) + FUSE-T
-- **Touch ID**: Native macOS LocalAuthentication framework via cgo
+- **Encryption**: AES-256-GCM via Go stdlib
+- **Key derivation**: PBKDF2-SHA256 (600k iterations) — only runs once at setup
+- **Key storage**: macOS Keychain with `kSecAccessControlBiometryAny` — Touch ID required to retrieve
+- **FUSE**: Read-write filesystem via [cgofuse](https://github.com/winfsp/cgofuse) + [FUSE-T](https://www.fuse-t.org/)
+- **Per-access Touch ID**: LAContext biometric check on every file open
+- **Backup**: Sealed file content stored as xattr on symlinks during mount (no `.touchfs` temp files)
+- **Codesigning**: .app bundle with Developer ID + provisioning profile for Keychain biometric entitlement
 
-## TODO
+## Build from source
 
-- **Password fallback**: Allow decryption via password as a fallback if Touch ID is not working
-- **Homebrew formula**: `brew tap lentan/touchfs && brew install touchfs` for easy distribution
+```bash
+make build    # Development (Apple Development cert)
+make dist     # Distribution (Developer ID cert + notarization-ready)
+```
