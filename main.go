@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
@@ -11,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/winfsp/cgofuse/fuse"
@@ -436,15 +438,64 @@ func cmdMount() {
 	}
 }
 
+// defaultSkipDirs are directories skipped when no config file exists.
+var defaultSkipDirs = map[string]bool{
+	".git":         true,
+	"node_modules": true,
+	"vendor":       true,
+	"__pycache__":  true,
+	".cache":       true,
+	".next":        true,
+	".nuxt":        true,
+	"dist":         true,
+	"build":        true,
+	".tox":         true,
+	".venv":        true,
+	".terraform":   true,
+}
+
+// loadSkipDirs reads ~/.config/touchfs/ignore if it exists, otherwise returns defaults.
+// The file contains one directory name per line. Lines starting with # are comments.
+func loadSkipDirs() map[string]bool {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return defaultSkipDirs
+	}
+	path := filepath.Join(home, ".config", "touchfs", "ignore")
+	f, err := os.Open(path)
+	if err != nil {
+		return defaultSkipDirs
+	}
+	defer f.Close()
+
+	dirs := make(map[string]bool)
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		dirs[line] = true
+	}
+	if len(dirs) == 0 {
+		return defaultSkipDirs
+	}
+	return dirs
+}
+
 // scanSealedFiles recursively finds all sealed files under dir.
 // Keys in the returned map are paths relative to dir.
 func scanSealedFiles(dir string) (map[string]*sealedFileInfo, error) {
+	skip := loadSkipDirs()
 	result := make(map[string]*sealedFileInfo)
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return nil // skip inaccessible entries
 		}
 		if d.IsDir() {
+			if skip[d.Name()] {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		// Skip symlinks (e.g. leftover from previous mount).
@@ -494,9 +545,13 @@ func cleanup(cwd string, names []string) {
 
 // recoverCrashedFiles recursively restores files from xattr on broken symlinks left by a crash.
 func recoverCrashedFiles(dir string) {
+	skip := loadSkipDirs()
 	filepath.WalkDir(dir, func(path string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return nil
+		}
+		if d.IsDir() && skip[d.Name()] {
+			return filepath.SkipDir
 		}
 		// Only look at symlinks.
 		if d.Type()&os.ModeSymlink == 0 {
