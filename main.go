@@ -393,6 +393,14 @@ func cmdMount() {
 			os.WriteFile(orig, content, 0600)
 			log.Fatalf("setxattr %s: %v", rel, err)
 		}
+
+		// Store original file mode for cleanup/recovery.
+		modeBuf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(modeBuf, uint32(info.mode))
+		if err := unix.Lsetxattr(orig, "touchfs.mode", modeBuf, 0); err != nil {
+			log.Printf("Warning: failed to store mode for %s: %v", rel, err)
+		}
+
 		managed = append(managed, rel)
 	}
 
@@ -534,8 +542,17 @@ func cleanup(cwd string, names []string) {
 			continue
 		}
 
+		modeBuf, err := lgetxattr(orig, "touchfs.mode")
+		if err != nil || len(modeBuf) != 4 {
+			log.Printf("Warning: could not read mode for %s, using 0600", name)
+		}
+		mode := os.FileMode(0600)
+		if len(modeBuf) == 4 {
+			mode = os.FileMode(binary.LittleEndian.Uint32(modeBuf))
+		}
+
 		os.Remove(orig)
-		if err := os.WriteFile(orig, content, 0600); err != nil {
+		if err := os.WriteFile(orig, content, mode); err != nil {
 			log.Printf("Warning: failed to restore %s: %v", name, err)
 		} else {
 			log.Printf("Restored %s", name)
@@ -568,8 +585,17 @@ func recoverCrashedFiles(dir string) {
 			return nil
 		}
 
+		modeBuf, modeErr := lgetxattr(path, "touchfs.mode")
+		if modeErr != nil || len(modeBuf) != 4 {
+			log.Printf("Warning: could not read mode for %s, using 0600", path)
+		}
+		mode := os.FileMode(0600)
+		if len(modeBuf) == 4 {
+			mode = os.FileMode(binary.LittleEndian.Uint32(modeBuf))
+		}
+
 		os.Remove(path)
-		if err := os.WriteFile(path, content, 0600); err != nil {
+		if err := os.WriteFile(path, content, mode); err != nil {
 			log.Printf("Warning: crash recovery failed for %s: %v", path, err)
 		} else {
 			log.Printf("Recovered %s from previous crash", path)

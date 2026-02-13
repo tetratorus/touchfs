@@ -21,6 +21,12 @@ type openFile struct {
 	dirty    bool
 }
 
+// authKey identifies a (file, process) pair for Touch ID caching.
+type authKey struct {
+	file string
+	pid  uint64
+}
+
 // SecureEnvFS is a FUSE filesystem that serves encrypted files,
 // decrypting on open (after Touch ID) and re-encrypting on close.
 type SecureEnvFS struct {
@@ -30,7 +36,7 @@ type SecureEnvFS struct {
 	encrypted map[string]*sealedFileInfo // fuseKey → sealed info
 	handles   map[uint64]*openFile       // fh → open file state
 	nextFH    uint64
-	lastAuth  time.Time                             // last successful Touch ID timestamp
+	lastAuth  map[authKey]time.Time                 // per-(file, pid) Touch ID cache
 	onDirty   func(relPath string, sealed []byte) // callback to update xattr on write
 }
 
@@ -41,6 +47,7 @@ func NewSecureEnvFS(files map[string]*sealedFileInfo, key []byte) *SecureEnvFS {
 		encrypted: files,
 		handles:   make(map[uint64]*openFile),
 		nextFH:    1,
+		lastAuth:  make(map[authKey]time.Time),
 	}
 }
 
@@ -136,17 +143,19 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 
 	log.Printf("Open called: %s (flags=%d)", info.relPath, flags)
 
-	// Touch ID gate via LAContext (skip if within TTL).
+	// Touch ID gate via LAContext (skip if within TTL for this file+pid).
+	_, _, pid := fuse.Getcontext()
+	ak := authKey{file: name, pid: uint64(pid)}
 	fs.mu.Lock()
-	cached := time.Since(fs.lastAuth) < authTTL
+	cached := time.Since(fs.lastAuth[ak]) < authTTL
 	fs.mu.Unlock()
 	if !cached {
 		if !authenticateTouchID("touchfs: access " + info.relPath) {
-			log.Printf("Touch ID denied for %s", info.relPath)
+			log.Printf("Touch ID denied for %s (pid %d)", info.relPath, pid)
 			return -fuse.EACCES, 0
 		}
 		fs.mu.Lock()
-		fs.lastAuth = time.Now()
+		fs.lastAuth[ak] = time.Now()
 		fs.mu.Unlock()
 	}
 
