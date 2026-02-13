@@ -14,10 +14,11 @@ const authTTL = 500 * time.Millisecond
 
 // openFile tracks the state of a single open file descriptor.
 type openFile struct {
-	name      string
-	data      []byte // decrypted content
-	origData  []byte // original plaintext at open time
-	dirty     bool
+	name     string // FUSE key (hash) for encrypted map lookup
+	relPath  string // original relative path for onDirty/logging
+	data     []byte // decrypted content
+	origData []byte // original plaintext at open time
+	dirty    bool
 }
 
 // SecureEnvFS is a FUSE filesystem that serves encrypted files,
@@ -26,11 +27,11 @@ type SecureEnvFS struct {
 	fuse.FileSystemBase
 	mu        sync.Mutex
 	key       []byte                     // AES key (from Keychain at mount)
-	encrypted map[string]*sealedFileInfo // filename → sealed info
+	encrypted map[string]*sealedFileInfo // fuseKey → sealed info
 	handles   map[uint64]*openFile       // fh → open file state
 	nextFH    uint64
-	lastAuth  time.Time                  // last successful Touch ID timestamp
-	onDirty   func(name string, sealed []byte) // callback to update xattr on write
+	lastAuth  time.Time                             // last successful Touch ID timestamp
+	onDirty   func(relPath string, sealed []byte) // callback to update xattr on write
 }
 
 // NewSecureEnvFS creates a filesystem with encrypted file contents and the AES key.
@@ -80,7 +81,7 @@ func (fs *SecureEnvFS) Getattr(path string, stat *fuse.Stat_t, fh uint64) int {
 	// Otherwise, decrypt to get accurate size.
 	plaintext, err := decrypt(info.encrypted, fs.key)
 	if err != nil {
-		log.Printf("decrypt error for %s: %v", name, err)
+		log.Printf("decrypt error for %s: %v", info.relPath, err)
 		return -fuse.EIO
 	}
 
@@ -125,7 +126,6 @@ func (fs *SecureEnvFS) Access(path string, mask uint32) int {
 }
 
 func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
-	log.Printf("Open called: %s (flags=%d)", path, flags)
 	name := path[1:]
 	fs.mu.Lock()
 	info, ok := fs.encrypted[name]
@@ -134,13 +134,15 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 		return -fuse.ENOENT, 0
 	}
 
+	log.Printf("Open called: %s (flags=%d)", info.relPath, flags)
+
 	// Touch ID gate via LAContext (skip if within TTL).
 	fs.mu.Lock()
 	cached := time.Since(fs.lastAuth) < authTTL
 	fs.mu.Unlock()
 	if !cached {
-		if !authenticateTouchID("touchfs: access " + name) {
-			log.Printf("Touch ID denied for %s", name)
+		if !authenticateTouchID("touchfs: access " + info.relPath) {
+			log.Printf("Touch ID denied for %s", info.relPath)
 			return -fuse.EACCES, 0
 		}
 		fs.mu.Lock()
@@ -151,7 +153,7 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	// Decrypt on open.
 	plaintext, err := decrypt(info.encrypted, fs.key)
 	if err != nil {
-		log.Printf("decrypt error for %s: %v", name, err)
+		log.Printf("decrypt error for %s: %v", info.relPath, err)
 		return -fuse.EIO, 0
 	}
 
@@ -162,12 +164,13 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	copy(orig, plaintext)
 	fs.handles[fh] = &openFile{
 		name:     name,
+		relPath:  info.relPath,
 		data:     plaintext,
 		origData: orig,
 	}
 	fs.mu.Unlock()
 
-	log.Printf("Touch ID OK — opened %s (fh=%d)", name, fh)
+	log.Printf("Touch ID OK — opened %s (fh=%d)", info.relPath, fh)
 	return 0, fh
 }
 
@@ -248,7 +251,7 @@ func (fs *SecureEnvFS) Release(path string, fh uint64) int {
 		// Re-encrypt and update stored encrypted content.
 		enc, err := encrypt(of.data, fs.key)
 		if err != nil {
-			log.Printf("re-encrypt error for %s: %v", of.name, err)
+			log.Printf("re-encrypt error for %s: %v", of.relPath, err)
 			return -fuse.EIO
 		}
 
@@ -261,10 +264,10 @@ func (fs *SecureEnvFS) Release(path string, fh uint64) int {
 		// Notify main to update xattr.
 		if fs.onDirty != nil {
 			sealed := magic + base64.StdEncoding.EncodeToString(enc) + "\n"
-			fs.onDirty(of.name, []byte(sealed))
+			fs.onDirty(of.relPath, []byte(sealed))
 		}
 
-		log.Printf("Re-encrypted %s on close", of.name)
+		log.Printf("Re-encrypted %s on close", of.relPath)
 	}
 	return 0
 }

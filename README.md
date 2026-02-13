@@ -22,7 +22,7 @@ brew tap tetratorus/tap && brew install --cask touchfs
 touchfs set                   # Create password (one time setup)
 touchfs seal [-p] <file>      # Encrypt a file in-place
 touchfs unseal [-p] <file>    # Decrypt a sealed file
-touchfs mount                 # Serve decrypted files from current working directory
+touchfs mount [path]          # Serve decrypted files recursively (default: cwd)
 touchfs reset                 # Delete key from Keychain
 touchfs version               # Print version
 ```
@@ -32,13 +32,12 @@ Use `-p` with `seal`/`unseal` to use a password instead of Touch ID.
 ### Example
 
 ```
-$ cd ~/project
-$ touchfs seal .env            # .env is now ciphertext on disk
-$ touchfs mount                # Touch ID prompt → mounts virtual filesystem
-                               # .env becomes a symlink to the mount
-                               # apps read/write .env as normal, gated by Touch ID
+$ touchfs seal ~/project/.env   # .env is now ciphertext on disk
+$ touchfs mount ~/project       # Touch ID prompt → mounts virtual filesystem
+                                # .env becomes a symlink to the mount
+                                # sealed files in subfolders are included too
 ...
-^C                             # Ctrl+C unmounts and restores .env as ciphertext
+^C                              # Ctrl+C unmounts and restores .env as ciphertext
 ```
 
 While mounted, `touchfs` runs in the foreground. Sealed files become symlinks that apps follow transparently. When you're done, Ctrl+C unmounts, restores the encrypted files, and wipes the key from memory.
@@ -49,7 +48,7 @@ Your password is used once to derive an AES-256 key via PBKDF2 (600k iterations,
 
 **Seal** replaces a file's contents with `#touchfs` + base64-encoded ciphertext (AES-256-GCM with random nonce). The file stays in place — same path, same name, just encrypted.
 
-**Mount** scans the current directory for sealed files and creates a [FUSE](https://github.com/macos-fuse-t/fuse-t) virtual filesystem at `/tmp/touchfs/`. Each sealed file is replaced with a symlink pointing to the mount, and its encrypted contents are stored in the symlink's extended attributes (xattrs) — no extra files created. When an app opens a file, Touch ID is prompted (with a short cooldown to prevent repeated prompts), the content is decrypted in memory, and on close, modified files are re-encrypted and the xattr is updated. Unmounting restores the original sealed files and wipes the key from memory.
+**Mount** recursively scans the given directory (or cwd) for sealed files and creates a [FUSE](https://github.com/macos-fuse-t/fuse-t) virtual filesystem at `/tmp/touchfs/`. Each sealed file is replaced with a symlink pointing to the mount, and its encrypted contents are stored in the symlink's extended attributes (xattrs) — no extra files created. When an app opens a file, Touch ID is prompted (with a short cooldown to prevent repeated prompts), the content is decrypted in memory, and on close, modified files are re-encrypted and the xattr is updated. Unmounting restores the original sealed files and wipes the key from memory.
 
 ## Build from source
 

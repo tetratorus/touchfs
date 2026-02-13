@@ -183,6 +183,7 @@ func parseSealedFile(path string) (*sealedFileInfo, error) {
 // sealedFileInfo holds the encrypted content of a sealed file.
 type sealedFileInfo struct {
 	name      string
+	relPath   string // relative path from root dir (set during mount)
 	encrypted []byte
 	mode      os.FileMode
 	uid       uint32
