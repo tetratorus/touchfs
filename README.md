@@ -52,17 +52,24 @@ Your password is used once to derive an AES-256 key via PBKDF2 (600k iterations,
 
 ## Ignore list
 
-When scanning recursively, touchfs skips directories like `.git`, `node_modules`, `vendor`, `__pycache__`, and others by default. To customize, create `~/.config/touchfs/ignore` with one directory name per line:
+When scanning recursively, touchfs skips these directories by default:
 
 ```
-# ~/.config/touchfs/ignore
 .git
 node_modules
 vendor
-my_custom_dir
+__pycache__
+.cache
+.next
+.nuxt
+dist
+build
+.tox
+.venv
+.terraform
 ```
 
-If the file exists, it replaces the defaults entirely.
+To customize, create `~/.config/touchfs/ignore` with one directory name per line. If the file exists, it replaces the defaults entirely — copy the list above as a starting point.
 
 ## Build from source
 
