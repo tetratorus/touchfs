@@ -154,7 +154,13 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	cached := time.Since(fs.lastAuth[ak]) < authTTL
 	fs.mu.Unlock()
 	if !cached {
-		if !fs.authFunc(filepath.Join(fs.rootDir, info.relPath)) {
+		absPath := filepath.Join(fs.rootDir, info.relPath)
+		pname := processName(int(pid))
+		reason := "give " + pname + " access to " + absPath
+		if pname == "" {
+			reason = "give access to " + absPath
+		}
+		if !fs.authFunc(reason) {
 			log.Printf("Touch ID denied for %s (pid %d)", info.relPath, pid)
 			return -fuse.EACCES, 0
 		}

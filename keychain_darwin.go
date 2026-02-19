@@ -5,6 +5,7 @@ package main
 #cgo LDFLAGS: -framework Security -framework Foundation -framework LocalAuthentication
 
 #include <stdlib.h>
+#include <libproc.h>
 #import <Security/Security.h>
 #import <LocalAuthentication/LocalAuthentication.h>
 
@@ -190,6 +191,16 @@ func authenticateTouchID(reason string) bool {
 	cReason := C.CString(reason)
 	defer C.free(unsafe.Pointer(cReason))
 	return C.touchid_auth(cReason) == 1
+}
+
+// processName returns the name of the process with the given PID.
+func processName(pid int) string {
+	var buf [256]C.char
+	n := C.proc_name(C.int(pid), unsafe.Pointer(&buf[0]), 256)
+	if n <= 0 {
+		return ""
+	}
+	return C.GoString(&buf[0])
 }
 
 // keychainStore saves the AES key in the macOS Keychain with biometric protection.
