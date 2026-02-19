@@ -147,7 +147,7 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	fs.mu.Unlock()
 	if !cached {
 		absPath := filepath.Join(fs.rootDir, info.relPath)
-		reason := "touchfs is trying to access " + absPath
+		reason := "access " + absPath
 		if !fs.authFunc(reason) {
 			log.Printf("Touch ID denied for %s", info.relPath)
 			return -fuse.EACCES, 0
