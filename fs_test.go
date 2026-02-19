@@ -274,7 +274,7 @@ func TestTruncate(t *testing.T) {
 	fs.Release("/test.env", fh)
 }
 
-func TestAuthCachePerFilePid(t *testing.T) {
+func TestAuthCachePerFile(t *testing.T) {
 	key := deriveKey([]byte("test-password"))
 	enc, _ := encrypt([]byte("data"), key)
 
@@ -307,7 +307,7 @@ func TestAuthCachePerFilePid(t *testing.T) {
 		t.Fatalf("expected 1 auth call, got %d", c)
 	}
 
-	// Second open within TTL should use cache (same pid=0 in test).
+	// Second open within TTL should use cache.
 	rc, fh = fs.Open("/file1", 0)
 	if rc != 0 {
 		t.Fatalf("Open 2: %d", rc)
