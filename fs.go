@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"log"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -33,6 +34,7 @@ type SecureEnvFS struct {
 	fuse.FileSystemBase
 	mu        sync.Mutex
 	key       []byte                     // AES key (from Keychain at mount)
+	rootDir   string                     // absolute path of the mounted directory
 	encrypted map[string]*sealedFileInfo // fuseKey → sealed info
 	handles   map[uint64]*openFile       // fh → open file state
 	nextFH    uint64
@@ -152,7 +154,7 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	cached := time.Since(fs.lastAuth[ak]) < authTTL
 	fs.mu.Unlock()
 	if !cached {
-		if !fs.authFunc("touchfs: access " + info.relPath) {
+		if !fs.authFunc("touchfs: access " + filepath.Join(fs.rootDir, info.relPath)) {
 			log.Printf("Touch ID denied for %s (pid %d)", info.relPath, pid)
 			return -fuse.EACCES, 0
 		}

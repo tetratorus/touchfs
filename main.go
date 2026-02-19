@@ -406,6 +406,7 @@ func cmdMount() {
 
 	// Build FUSE filesystem with flat hash-keyed map + key.
 	secFS := NewSecureEnvFS(fuseMap, key)
+	secFS.rootDir = rootDir
 
 	// On dirty close, update xattr so cleanup restores the updated sealed file.
 	secFS.onDirty = func(relPath string, sealedContent []byte) {
