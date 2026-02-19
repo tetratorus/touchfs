@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"path/filepath"
 	"sync"
@@ -156,10 +157,16 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	if !cached {
 		absPath := filepath.Join(fs.rootDir, info.relPath)
 		pname := processName(int(pid))
-		reason := "give " + pname + " access to " + absPath
-		if pname == "" {
-			reason = "give access to " + absPath
+		var caller string
+		switch {
+		case pname != "":
+			caller = "[" + pname + "]"
+		case pid == 0:
+			caller = "[kernel]"
+		default:
+			caller = fmt.Sprintf("[PID %d]", pid)
 		}
+		reason := "give " + caller + " access to " + absPath
 		if !fs.authFunc(reason) {
 			log.Printf("Touch ID denied for %s (pid %d)", info.relPath, pid)
 			return -fuse.EACCES, 0
