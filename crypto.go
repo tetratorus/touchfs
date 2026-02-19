@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	magic      = "#touchfs\n"
-	pbkdf2Iter = 600_000
-	keyLen     = 32
+	magic       = "#touchfs\n"
+	pbkdf2Iter  = 600_000
+	keyLen      = 32
+	maxFileSize = 100 * 1024 * 1024 // 100 MB
 )
 
 // deriveKey derives a 32-byte AES-256 key from a password using PBKDF2-SHA256.
@@ -79,6 +80,14 @@ func sealFile(path string, key []byte) error {
 		return fmt.Errorf("%s is already sealed", path)
 	}
 
+	fi, err := os.Stat(absPath)
+	if err != nil {
+		return fmt.Errorf("stat file: %w", err)
+	}
+	if fi.Size() > maxFileSize {
+		return fmt.Errorf("%s is too large (%d MB, max %d MB)", path, fi.Size()/(1024*1024), maxFileSize/(1024*1024))
+	}
+
 	plaintext, err := os.ReadFile(absPath)
 	if err != nil {
 		return fmt.Errorf("read file: %w", err)
@@ -92,12 +101,7 @@ func sealFile(path string, key []byte) error {
 	encoded := base64.StdEncoding.EncodeToString(encrypted)
 	content := magic + encoded + "\n"
 
-	info, err := os.Stat(absPath)
-	if err != nil {
-		return fmt.Errorf("stat file: %w", err)
-	}
-
-	if err := os.WriteFile(absPath, []byte(content), info.Mode()); err != nil {
+	if err := os.WriteFile(absPath, []byte(content), fi.Mode()); err != nil {
 		return fmt.Errorf("write sealed file: %w", err)
 	}
 	return nil

@@ -24,8 +24,8 @@ SHA=$(shasum -a 256 touchfs.zip | awk '{print $1}')
 echo "SHA256: $SHA"
 
 echo "=== Committing ==="
-git add -A
-git commit -m "Release $VERSION" || true
+git add *.go go.mod go.sum Makefile README.md release.sh
+git diff --cached --quiet || git commit -m "Release $VERSION"
 git push
 
 echo "=== Creating GitHub release ==="
@@ -58,7 +58,7 @@ end
 EOF
 
 cd "$TAP_DIR"
-git add -A
+git add Casks/touchfs.rb
 git commit -m "Update touchfs to $VERSION"
 git push
 cd -

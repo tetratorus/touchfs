@@ -38,6 +38,7 @@ type SecureEnvFS struct {
 	nextFH    uint64
 	lastAuth  map[authKey]time.Time                 // per-(file, pid) Touch ID cache
 	onDirty   func(relPath string, sealed []byte) // callback to update xattr on write
+	authFunc  func(reason string) bool             // defaults to authenticateTouchID
 }
 
 // NewSecureEnvFS creates a filesystem with encrypted file contents and the AES key.
@@ -48,6 +49,7 @@ func NewSecureEnvFS(files map[string]*sealedFileInfo, key []byte) *SecureEnvFS {
 		handles:   make(map[uint64]*openFile),
 		nextFH:    1,
 		lastAuth:  make(map[authKey]time.Time),
+		authFunc:  authenticateTouchID,
 	}
 }
 
@@ -150,7 +152,7 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	cached := time.Since(fs.lastAuth[ak]) < authTTL
 	fs.mu.Unlock()
 	if !cached {
-		if !authenticateTouchID("touchfs: access " + info.relPath) {
+		if !fs.authFunc("touchfs: access " + info.relPath) {
 			log.Printf("Touch ID denied for %s (pid %d)", info.relPath, pid)
 			return -fuse.EACCES, 0
 		}
