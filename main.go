@@ -113,7 +113,7 @@ Touch ID is all you need.
 Usage:
   touchfs seal   [-p] <file>   Encrypt a file in-place
   touchfs unseal [-p] <file>   Decrypt a sealed file back to plaintext
-  touchfs mount  [path]        Mount FUSE, serve decrypted files recursively
+  touchfs mount  [path...]      Mount FUSE for files and/or directories (default: .)
   touchfs set                  Create or update password in Keychain
   touchfs reset                Delete key from Keychain
   touchfs version              Print version
@@ -181,10 +181,16 @@ func ensureKey() ([]byte, error) {
 func getKey() ([]byte, error) {
 	key, err := keychainLoad()
 	if err != nil {
+		if keychainHas() {
+			return nil, fmt.Errorf("Touch ID required to access key")
+		}
 		return nil, fmt.Errorf("Keychain access failed: %w", err)
 	}
 	if key == nil {
-		return nil, fmt.Errorf("no key in Keychain — run 'touchfs seal' first to set up")
+		if keychainHas() {
+			return nil, fmt.Errorf("Touch ID required to access key")
+		}
+		return nil, fmt.Errorf("no key in Keychain — run 'touchfs set' first")
 	}
 	return key, nil
 }
@@ -311,45 +317,80 @@ func cmdReset() {
 	fmt.Println("Key deleted from Keychain")
 }
 
-// cmdMount scans a directory tree for sealed files and mounts FUSE.
+// cmdMount mounts sealed files via FUSE. Accepts any mix of files and directories.
+// Directories are scanned recursively for sealed files. Individual files are mounted directly.
 // Files stay encrypted in memory; decrypted on-demand after Touch ID in Open().
 // On close, modified files are re-encrypted and xattr is updated.
 func cmdMount() {
-	var rootDir string
-	if len(os.Args) >= 3 {
-		rootDir = os.Args[2]
-	} else {
+	args := os.Args[2:]
+	if len(args) == 0 {
 		dir, err := os.Getwd()
 		if err != nil {
 			log.Fatalf("getwd: %v", err)
 		}
-		rootDir = dir
+		args = []string{dir}
 	}
 
-	absDir, err := filepath.Abs(rootDir)
-	if err != nil {
-		log.Fatalf("resolve path: %v", err)
-	}
-	rootDir = absDir
+	// Classify args into files and directories.
+	var dirs []string
+	var files []string
+	for _, arg := range args {
+		abs, err := filepath.Abs(arg)
+		if err != nil {
+			log.Fatalf("resolve path %s: %v", arg, err)
+		}
 
-	fi, err := os.Stat(rootDir)
-	if err != nil {
-		log.Fatalf("path: %v", err)
-	}
-	if !fi.IsDir() {
-		log.Fatalf("%s is not a directory", rootDir)
+		// Check for broken symlink from a previous crash.
+		fi, statErr := os.Lstat(abs)
+		if statErr != nil {
+			log.Fatalf("path: %v", statErr)
+		}
+		if fi.Mode()&os.ModeSymlink != 0 {
+			if err := restoreFromXattr(abs); err != nil {
+				log.Fatalf("recover %s: %v", abs, err)
+			}
+			log.Printf("Recovered %s from previous crash", abs)
+			fi, statErr = os.Lstat(abs)
+			if statErr != nil {
+				log.Fatalf("path: %v", statErr)
+			}
+		}
+
+		if fi.IsDir() {
+			dirs = append(dirs, abs)
+		} else {
+			files = append(files, abs)
+		}
 	}
 
-	// Crash recovery: restore any broken symlinks from a previous crashed run.
-	recoverCrashedFiles(rootDir)
+	// Collect sealed files keyed by absolute path.
+	sealed := make(map[string]*sealedFileInfo)
 
-	// Scan for sealed files recursively.
-	sealed, err := scanSealedFiles(rootDir)
-	if err != nil {
-		log.Fatalf("scan: %v", err)
+	for _, dir := range dirs {
+		recoverCrashedFiles(dir)
+		scanned, err := scanSealedFiles(dir)
+		if err != nil {
+			log.Fatalf("scan %s: %v", dir, err)
+		}
+		for rel, info := range scanned {
+			abs := filepath.Join(dir, rel)
+			sealed[abs] = info
+		}
 	}
+
+	for _, f := range files {
+		if !isSealedFile(f) {
+			log.Fatalf("%s is not a sealed file", f)
+		}
+		info, err := parseSealedFile(f)
+		if err != nil {
+			log.Fatalf("parse %s: %v", f, err)
+		}
+		sealed[f] = info
+	}
+
 	if len(sealed) == 0 {
-		log.Fatalf("No sealed files found in %s", rootDir)
+		log.Fatalf("No sealed files found")
 	}
 
 	// Get key once (triggers Touch ID via Keychain).
@@ -358,8 +399,12 @@ func cmdMount() {
 		log.Fatalf("key: %v", err)
 	}
 
-	// Build mount point: /tmp/touchfs/<sha256(rootDir)>/
-	h := sha256.Sum256([]byte(rootDir))
+	// Build mount point from resolved absolute paths.
+	var sortedPaths []string
+	for absPath := range sealed {
+		sortedPaths = append(sortedPaths, absPath)
+	}
+	h := sha256.Sum256([]byte(strings.Join(sortedPaths, "\x00")))
 	mountpoint := filepath.Join(os.TempDir(), "touchfs", hex.EncodeToString(h[:]))
 	if err := os.MkdirAll(mountpoint, 0755); err != nil {
 		log.Fatalf("create mountpoint: %v", err)
@@ -368,51 +413,48 @@ func cmdMount() {
 	// Set up symlinks and build flat FUSE map (hash-keyed).
 	fuseMap := make(map[string]*sealedFileInfo)
 	var managed []string
-	for rel, info := range sealed {
-		info.relPath = rel
-		fh := sha256.Sum256([]byte(rel))
+	for absPath, info := range sealed {
+		info.relPath = absPath
+		fh := sha256.Sum256([]byte(absPath))
 		fuseKey := hex.EncodeToString(fh[:])
 		fuseMap[fuseKey] = info
 
-		orig := filepath.Join(rootDir, rel)
 		link := filepath.Join(mountpoint, fuseKey)
 
-		content, err := os.ReadFile(orig)
+		content, err := os.ReadFile(absPath)
 		if err != nil {
-			log.Fatalf("read %s: %v", rel, err)
+			log.Fatalf("read %s: %v", absPath, err)
 		}
 
-		os.Remove(orig)
-		if err := os.Symlink(link, orig); err != nil {
-			os.WriteFile(orig, content, 0600)
-			log.Fatalf("symlink %s → %s: %v", orig, link, err)
+		os.Remove(absPath)
+		if err := os.Symlink(link, absPath); err != nil {
+			os.WriteFile(absPath, content, 0600)
+			log.Fatalf("symlink %s → %s: %v", absPath, link, err)
 		}
 
-		if err := setSymlinkXattr(orig, content); err != nil {
-			os.Remove(orig)
-			os.WriteFile(orig, content, 0600)
-			log.Fatalf("setxattr %s: %v", rel, err)
+		if err := setSymlinkXattr(absPath, content); err != nil {
+			os.Remove(absPath)
+			os.WriteFile(absPath, content, 0600)
+			log.Fatalf("setxattr %s: %v", absPath, err)
 		}
 
 		// Store original file mode for cleanup/recovery.
 		modeBuf := make([]byte, 4)
 		binary.LittleEndian.PutUint32(modeBuf, uint32(info.mode))
-		if err := unix.Lsetxattr(orig, "touchfs.mode", modeBuf, 0); err != nil {
-			log.Printf("Warning: failed to store mode for %s: %v", rel, err)
+		if err := unix.Lsetxattr(absPath, "touchfs.mode", modeBuf, 0); err != nil {
+			log.Printf("Warning: failed to store mode for %s: %v", absPath, err)
 		}
 
-		managed = append(managed, rel)
+		managed = append(managed, absPath)
 	}
 
 	// Build FUSE filesystem with flat hash-keyed map + key.
 	secFS := NewSecureEnvFS(fuseMap, key)
-	secFS.rootDir = rootDir
 
 	// On dirty close, update xattr so cleanup restores the updated sealed file.
-	secFS.onDirty = func(relPath string, sealedContent []byte) {
-		orig := filepath.Join(rootDir, relPath)
-		if err := setSymlinkXattr(orig, sealedContent); err != nil {
-			log.Printf("Warning: update xattr for %s failed: %v", relPath, err)
+	secFS.onDirty = func(absPath string, sealedContent []byte) {
+		if err := setSymlinkXattr(absPath, sealedContent); err != nil {
+			log.Printf("Warning: update xattr for %s failed: %v", absPath, err)
 		}
 	}
 
@@ -430,17 +472,16 @@ func cmdMount() {
 	}()
 
 	log.Printf("touchfs %s", version)
-	log.Printf("Root: %s", rootDir)
 	log.Printf("Mounting at %s", mountpoint)
-	for _, rel := range managed {
-		log.Printf("  %s", rel)
+	for _, abs := range managed {
+		log.Printf("  %s", abs)
 	}
 	log.Println("Press Ctrl+C to unmount and restore files")
 
 	ok := host.Mount(mountpoint, []string{"-o", "volname=touchfs", "-o", "direct_io"})
 
 	// Cleanup: remove symlinks, restore sealed files from xattr.
-	cleanup(rootDir, managed)
+	cleanupFiles(managed)
 
 	if !ok && !userUnmount {
 		log.Fatal("Mount failed")
@@ -532,36 +573,38 @@ func scanSealedFiles(dir string) (map[string]*sealedFileInfo, error) {
 	return result, nil
 }
 
-// cleanup restores sealed files from xattr on symlinks.
-func cleanup(cwd string, names []string) {
-	for _, name := range names {
-		orig := filepath.Join(cwd, name)
+// restoreFromXattr replaces a symlink with its sealed content stored in xattr.
+func restoreFromXattr(path string) error {
+	content, err := getSymlinkXattr(path)
+	if err != nil {
+		return fmt.Errorf("read xattr: %w", err)
+	}
 
-		content, err := getSymlinkXattr(orig)
-		if err != nil {
-			log.Printf("Warning: could not read xattr for %s: %v", name, err)
-			continue
-		}
+	modeBuf, err := lgetxattr(path, "touchfs.mode")
+	mode := os.FileMode(0600)
+	if err == nil && len(modeBuf) == 4 {
+		mode = os.FileMode(binary.LittleEndian.Uint32(modeBuf))
+	}
 
-		modeBuf, err := lgetxattr(orig, "touchfs.mode")
-		if err != nil || len(modeBuf) != 4 {
-			log.Printf("Warning: could not read mode for %s, using 0600", name)
-		}
-		mode := os.FileMode(0600)
-		if len(modeBuf) == 4 {
-			mode = os.FileMode(binary.LittleEndian.Uint32(modeBuf))
-		}
+	os.Remove(path)
+	if err := os.WriteFile(path, content, mode); err != nil {
+		return fmt.Errorf("write: %w", err)
+	}
+	return nil
+}
 
-		os.Remove(orig)
-		if err := os.WriteFile(orig, content, mode); err != nil {
-			log.Printf("Warning: failed to restore %s: %v", name, err)
+// cleanupFiles restores sealed files from xattr on symlinks.
+func cleanupFiles(paths []string) {
+	for _, path := range paths {
+		if err := restoreFromXattr(path); err != nil {
+			log.Printf("Warning: failed to restore %s: %v", path, err)
 		} else {
-			log.Printf("Restored %s", name)
+			log.Printf("Restored %s", path)
 		}
 	}
 }
 
-// recoverCrashedFiles recursively restores files from xattr on broken symlinks left by a crash.
+// recoverCrashedFiles recursively restores broken symlinks left by a crash.
 func recoverCrashedFiles(dir string) {
 	skip := loadSkipDirs()
 	filepath.WalkDir(dir, func(path string, d os.DirEntry, walkErr error) error {
@@ -571,34 +614,14 @@ func recoverCrashedFiles(dir string) {
 		if d.IsDir() && skip[d.Name()] {
 			return filepath.SkipDir
 		}
-		// Only look at symlinks.
 		if d.Type()&os.ModeSymlink == 0 {
 			return nil
 		}
-
-		// Check if symlink target is missing (crashed state).
+		// Only recover broken symlinks (target missing = crashed state).
 		if _, err := os.Stat(path); err == nil {
-			return nil // target exists, not crashed
-		}
-
-		content, err := getSymlinkXattr(path)
-		if err != nil {
 			return nil
 		}
-
-		modeBuf, modeErr := lgetxattr(path, "touchfs.mode")
-		if modeErr != nil || len(modeBuf) != 4 {
-			log.Printf("Warning: could not read mode for %s, using 0600", path)
-		}
-		mode := os.FileMode(0600)
-		if len(modeBuf) == 4 {
-			mode = os.FileMode(binary.LittleEndian.Uint32(modeBuf))
-		}
-
-		os.Remove(path)
-		if err := os.WriteFile(path, content, mode); err != nil {
-			log.Printf("Warning: crash recovery failed for %s: %v", path, err)
-		} else {
+		if err := restoreFromXattr(path); err == nil {
 			log.Printf("Recovered %s from previous crash", path)
 		}
 		return nil

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"log"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -16,7 +15,7 @@ const authTTL = 500 * time.Millisecond
 // openFile tracks the state of a single open file descriptor.
 type openFile struct {
 	name     string // FUSE key (hash) for encrypted map lookup
-	relPath  string // original relative path for onDirty/logging
+	relPath  string // absolute path of the original file
 	data     []byte // decrypted content
 	origData []byte // original plaintext at open time
 	dirty    bool
@@ -28,12 +27,11 @@ type SecureEnvFS struct {
 	fuse.FileSystemBase
 	mu        sync.Mutex
 	key       []byte                     // AES key (from Keychain at mount)
-	rootDir   string                     // absolute path of the mounted directory
-	encrypted map[string]*sealedFileInfo // fuseKey → sealed info
-	handles   map[uint64]*openFile       // fh → open file state
+	encrypted map[string]*sealedFileInfo        // fuseKey → sealed info
+	handles   map[uint64]*openFile              // fh → open file state
 	nextFH    uint64
-	lastAuth  map[string]time.Time               // per-file Touch ID cache
-	onDirty   func(relPath string, sealed []byte) // callback to update xattr on write
+	lastAuth  map[string]time.Time              // per-file Touch ID cache
+	onDirty   func(absPath string, sealed []byte) // callback to update xattr on write
 	authFunc  func(reason string) bool             // defaults to authenticateTouchID
 }
 
@@ -146,8 +144,7 @@ func (fs *SecureEnvFS) Open(path string, flags int) (int, uint64) {
 	cached := time.Since(fs.lastAuth[name]) < authTTL
 	fs.mu.Unlock()
 	if !cached {
-		absPath := filepath.Join(fs.rootDir, info.relPath)
-		reason := "access " + absPath
+		reason := "access " + info.relPath
 		if !fs.authFunc(reason) {
 			log.Printf("Touch ID denied for %s", info.relPath)
 			return -fuse.EACCES, 0

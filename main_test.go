@@ -203,7 +203,7 @@ func TestCleanupRestoresFile(t *testing.T) {
 	binary.LittleEndian.PutUint32(modeBuf, uint32(0644))
 	unix.Lsetxattr(orig, "touchfs.mode", modeBuf, 0)
 
-	cleanup(dir, []string{"secret.env"})
+	cleanupFiles([]string{orig})
 
 	// Verify file was restored.
 	fi, err := os.Lstat(orig)
@@ -239,7 +239,7 @@ func TestCleanupRestoresPermissions(t *testing.T) {
 	binary.LittleEndian.PutUint32(modeBuf, uint32(0640))
 	unix.Lsetxattr(orig, "touchfs.mode", modeBuf, 0)
 
-	cleanup(dir, []string{"secret.env"})
+	cleanupFiles([]string{orig})
 
 	fi, err := os.Stat(orig)
 	if err != nil {
