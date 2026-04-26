@@ -29,7 +29,12 @@ git diff --cached --quiet || git commit -m "Release $VERSION"
 git push
 
 echo "=== Creating GitHub release ==="
-gh release create "$VERSION" touchfs.zip --title "$VERSION" --notes "Release $VERSION"
+if gh release view "$VERSION" > /dev/null 2>&1; then
+  echo "Release $VERSION already exists, uploading asset..."
+  gh release upload "$VERSION" touchfs.zip --clobber
+else
+  gh release create "$VERSION" touchfs.zip --title "$VERSION" --notes "Release $VERSION"
+fi
 
 echo "=== Updating Homebrew tap ==="
 rm -rf "$TAP_DIR"
