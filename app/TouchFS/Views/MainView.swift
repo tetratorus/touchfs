@@ -5,6 +5,7 @@ struct MainView: View {
     let cli: CLIService
     @State private var files: [SealedFile] = []
     @State private var error: String?
+    @State private var loading = true
     @State private var showSettings = false
     @State private var showWelcome = false
     @State private var needsInstall = false
@@ -39,8 +40,14 @@ struct MainView: View {
 
             Divider()
 
+            if loading {
+                Spacer()
+                ProgressView("Loading...")
+                Spacer()
+            }
+
             // Banners
-            if needsInstall {
+            if !loading && needsInstall {
                 installBanner
             } else if needsPassword {
                 passwordBanner
@@ -64,7 +71,7 @@ struct MainView: View {
             }
 
             // File list
-            if !needsInstall && !needsPassword && !showWelcome {
+            if !loading && !needsInstall && !needsPassword && !showWelcome {
                 if files.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "lock.open")
@@ -212,9 +219,8 @@ struct MainView: View {
     private func checkState() {
         files = store.load()
         Task {
-            var ready = cli.hasBinary && cli.hasFuseT
-            if ready { ready = await cli.checkBinaryWorks() }
-            if !ready {
+            defer { loading = false }
+            if !cli.hasBinary || !cli.hasFuseT {
                 needsInstall = true
                 return
             }

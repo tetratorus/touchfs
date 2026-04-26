@@ -15,6 +15,7 @@ struct TouchFSApp: App {
             CommandGroup(replacing: .appTermination) {
                 Button("Close Window") {
                     NSApplication.shared.keyWindow?.close()
+                    NSApplication.shared.setActivationPolicy(.accessory)
                 }
                 .keyboardShortcut("q")
             }
@@ -66,15 +67,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApplication.shared.setActivationPolicy(.accessory)
-    }
-
-    func applicationWillBecomeActive(_ notification: Notification) {
-        NSApplication.shared.setActivationPolicy(.regular)
+        NSApplication.shared.activate(ignoringOtherApps: true)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        NSApplication.shared.setActivationPolicy(.accessory)
         return false
     }
 
