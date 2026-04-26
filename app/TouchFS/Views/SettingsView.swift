@@ -61,6 +61,10 @@ struct SettingsView: View {
 
                     Divider()
 
+                    ChangePasswordSection(cli: cli, store: store, mount: mount)
+
+                    Divider()
+
                     Text("Reset TouchFS")
                         .font(.headline)
                     Text("Unprotects all files, deletes your key, and returns to setup.")

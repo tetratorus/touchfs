@@ -14,6 +14,7 @@
 		1A6BA7526B378B7445833CB1 /* FileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFBF7A1C7D735C811ED330A /* FileStore.swift */; };
 		306834268341627972B2482A /* Installer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7A0B91C591505C66FCFCAE /* Installer.swift */; };
 		321ACC13BF1292C0756AB236 /* CLIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EC479F38EE88AA00355368C /* CLIService.swift */; };
+		4507505D159FECB8ED8896DB /* ChangePasswordSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2055235A40C0AF34FE319D58 /* ChangePasswordSection.swift */; };
 		4E5B476AA7CF917FBB6EDC39 /* MountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4436D1F0EFFA24072362B5 /* MountService.swift */; };
 		590E42B3AE8E7AE406D0DE10 /* FilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B63F9BE75FCB5E5715B8DB /* FilePicker.swift */; };
 		99B51FDED6C4A7315D1FBF37 /* EngineSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B10BD5CA9DBE4CACAA59B2D /* EngineSection.swift */; };
@@ -27,6 +28,7 @@
 
 /* Begin PBXFileReference section */
 		0FF136DCFB5B9D3BA7CD47E5 /* LoginItemToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemToggle.swift; sourceTree = "<group>"; };
+		2055235A40C0AF34FE319D58 /* ChangePasswordSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChangePasswordSection.swift; sourceTree = "<group>"; };
 		2E7A0B91C591505C66FCFCAE /* Installer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Installer.swift; sourceTree = "<group>"; };
 		4EC479F38EE88AA00355368C /* CLIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIService.swift; sourceTree = "<group>"; };
 		5441B51152BC937674D0489D /* SealedFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealedFile.swift; sourceTree = "<group>"; };
@@ -85,6 +87,7 @@
 		7D6554CE7C2A57F260758EBA /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				2055235A40C0AF34FE319D58 /* ChangePasswordSection.swift */,
 				A5CF9FF28D341A89D6E7BAC7 /* CLIInstallSection.swift */,
 				5B10BD5CA9DBE4CACAA59B2D /* EngineSection.swift */,
 				D5A12B0FADFFD5FEA8126F90 /* InstallView.swift */,
@@ -182,6 +185,7 @@
 			files = (
 				CEA511DB09449F379AC63428 /* CLIInstallSection.swift in Sources */,
 				321ACC13BF1292C0756AB236 /* CLIService.swift in Sources */,
+				4507505D159FECB8ED8896DB /* ChangePasswordSection.swift in Sources */,
 				99B51FDED6C4A7315D1FBF37 /* EngineSection.swift in Sources */,
 				590E42B3AE8E7AE406D0DE10 /* FilePicker.swift in Sources */,
 				1A6BA7526B378B7445833CB1 /* FileStore.swift in Sources */,
