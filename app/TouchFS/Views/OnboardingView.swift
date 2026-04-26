@@ -14,7 +14,7 @@ struct OnboardingView: View {
         VStack(spacing: 20) {
             if step == 0 {
                 welcomeStep
-            } else {
+            } else if step == 1 {
                 passwordStep
             }
         }
@@ -36,7 +36,16 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 400)
 
-            Button("Continue") { step = 1 }
+            Button("Continue") {
+                Task {
+                    // Check if key already exists — skip password if so.
+                    if let status = try? await cli.status(), status.hasKey {
+                        screen = .main
+                    } else {
+                        step = 1
+                    }
+                }
+            }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .padding(.top, 10)
