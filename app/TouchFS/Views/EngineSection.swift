@@ -2,7 +2,6 @@ import SwiftUI
 
 struct EngineSection: View {
     let cli: CLIService
-    @Binding var screen: AppScreen
 
     @State private var version = ""
     @State private var updating = false
@@ -77,7 +76,7 @@ struct EngineSection: View {
         do {
             try FileManager.default.removeItem(atPath: "/Applications/touchfs-cli.app")
             confirmUninstall = false
-            screen = .install
+            version = ""
         } catch {
             self.error = "Failed to uninstall: \(error.localizedDescription)"
             confirmUninstall = false

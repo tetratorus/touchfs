@@ -18,16 +18,15 @@ class CLIService {
     }
 
     var hasBinary: Bool {
-        // Actually try to run it — file existence checks miss broken symlinks.
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: binaryPath)
-        proc.arguments = ["version"]
-        proc.standardOutput = Pipe()
-        proc.standardError = FileHandle.nullDevice
+        // Check file exists and isn't a broken symlink.
+        var s = stat()
+        return stat(Self.installedPath, &s) == 0
+    }
+
+    func checkBinaryWorks() async -> Bool {
         do {
-            try proc.run()
-            proc.waitUntilExit()
-            return proc.terminationStatus == 0
+            let v = try await version()
+            return !v.isEmpty
         } catch {
             return false
         }

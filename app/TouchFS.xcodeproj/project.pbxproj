@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		0C0EE153430D9FEC2955B6A4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E262C5DA4108F84721257341 /* SettingsView.swift */; };
 		1153FCF335CDA91894B1066B /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D7BBDEC1E9C04FF732E0DFB /* MainView.swift */; };
-		11BAA452995DD8277F61880D /* InstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A12B0FADFFD5FEA8126F90 /* InstallView.swift */; };
 		19BD35434B76EF542081083D /* LoginItemToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FF136DCFB5B9D3BA7CD47E5 /* LoginItemToggle.swift */; };
 		1A6BA7526B378B7445833CB1 /* FileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFBF7A1C7D735C811ED330A /* FileStore.swift */; };
 		306834268341627972B2482A /* Installer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7A0B91C591505C66FCFCAE /* Installer.swift */; };
@@ -20,7 +19,6 @@
 		99B51FDED6C4A7315D1FBF37 /* EngineSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B10BD5CA9DBE4CACAA59B2D /* EngineSection.swift */; };
 		AD656E068E3AB4C84DE7E51A /* TouchFSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6496A7A537E9353891EF8B99 /* TouchFSApp.swift */; };
 		CEA511DB09449F379AC63428 /* CLIInstallSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5CF9FF28D341A89D6E7BAC7 /* CLIInstallSection.swift */; };
-		DF6FA2A8212D8EE23387BC16 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A381BC3097267A8D0D2EEC22 /* OnboardingView.swift */; };
 		E8508B758BE105CDAC8B35D7 /* SealedFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5441B51152BC937674D0489D /* SealedFile.swift */; };
 		F771D67392C043038CE4AACB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D62387D7EA9A8C745D4C7DC1 /* Assets.xcassets */; };
 		FA18AC0BC8E9D13EEEC29FFC /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD66C7A0C1081C7249C08C5 /* StatusView.swift */; };
@@ -36,11 +34,9 @@
 		5D7BBDEC1E9C04FF732E0DFB /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		6496A7A537E9353891EF8B99 /* TouchFSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchFSApp.swift; sourceTree = "<group>"; };
 		7BFBF7A1C7D735C811ED330A /* FileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileStore.swift; sourceTree = "<group>"; };
-		A381BC3097267A8D0D2EEC22 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A5CF9FF28D341A89D6E7BAC7 /* CLIInstallSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIInstallSection.swift; sourceTree = "<group>"; };
 		B2B63F9BE75FCB5E5715B8DB /* FilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePicker.swift; sourceTree = "<group>"; };
 		C4793B14DECCB06F290F4D55 /* TouchFS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TouchFS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D5A12B0FADFFD5FEA8126F90 /* InstallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallView.swift; sourceTree = "<group>"; };
 		D62387D7EA9A8C745D4C7DC1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E262C5DA4108F84721257341 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EA4436D1F0EFFA24072362B5 /* MountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountService.swift; sourceTree = "<group>"; };
@@ -90,10 +86,8 @@
 				2055235A40C0AF34FE319D58 /* ChangePasswordSection.swift */,
 				A5CF9FF28D341A89D6E7BAC7 /* CLIInstallSection.swift */,
 				5B10BD5CA9DBE4CACAA59B2D /* EngineSection.swift */,
-				D5A12B0FADFFD5FEA8126F90 /* InstallView.swift */,
 				0FF136DCFB5B9D3BA7CD47E5 /* LoginItemToggle.swift */,
 				5D7BBDEC1E9C04FF732E0DFB /* MainView.swift */,
-				A381BC3097267A8D0D2EEC22 /* OnboardingView.swift */,
 				E262C5DA4108F84721257341 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -189,12 +183,10 @@
 				99B51FDED6C4A7315D1FBF37 /* EngineSection.swift in Sources */,
 				590E42B3AE8E7AE406D0DE10 /* FilePicker.swift in Sources */,
 				1A6BA7526B378B7445833CB1 /* FileStore.swift in Sources */,
-				11BAA452995DD8277F61880D /* InstallView.swift in Sources */,
 				306834268341627972B2482A /* Installer.swift in Sources */,
 				19BD35434B76EF542081083D /* LoginItemToggle.swift in Sources */,
 				1153FCF335CDA91894B1066B /* MainView.swift in Sources */,
 				4E5B476AA7CF917FBB6EDC39 /* MountService.swift in Sources */,
-				DF6FA2A8212D8EE23387BC16 /* OnboardingView.swift in Sources */,
 				E8508B758BE105CDAC8B35D7 /* SealedFile.swift in Sources */,
 				0C0EE153430D9FEC2955B6A4 /* SettingsView.swift in Sources */,
 				FA18AC0BC8E9D13EEEC29FFC /* StatusView.swift in Sources */,

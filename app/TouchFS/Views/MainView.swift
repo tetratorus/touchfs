@@ -3,11 +3,17 @@ import UniformTypeIdentifiers
 
 struct MainView: View {
     let cli: CLIService
-    @Binding var screen: AppScreen
     @State private var files: [SealedFile] = []
     @State private var error: String?
-    @State private var mountRunning = false
     @State private var showSettings = false
+    @State private var showWelcome = false
+    @State private var needsInstall = false
+    @State private var needsPassword = false
+    @State private var installing = false
+    @State private var installProgress = ""
+    @State private var password = ""
+    @State private var confirmPassword = ""
+    @State private var settingPassword = false
 
     private let store = FileStore()
     private let mount = MountService.shared
@@ -16,19 +22,31 @@ struct MainView: View {
         VStack(spacing: 0) {
             // Toolbar
             HStack {
-                Text("Protected Files")
+                Text("TouchFS")
                     .font(.headline)
                 Spacer()
                 Button { showSettings = true } label: {
                     Image(systemName: "gear")
                 }
                 .buttonStyle(.plain)
+                .disabled(needsInstall)
                 Button("Protect Files") { openSealPanel() }
                     .buttonStyle(.borderedProminent)
+                    .disabled(needsInstall || needsPassword)
+                    .opacity(needsInstall || needsPassword ? 0.4 : 1.0)
             }
             .padding()
 
             Divider()
+
+            // Banners
+            if needsInstall {
+                installBanner
+            } else if needsPassword {
+                passwordBanner
+            } else if showWelcome {
+                welcomeBanner
+            }
 
             // Error
             if let error {
@@ -46,61 +64,212 @@ struct MainView: View {
             }
 
             // File list
-            if files.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "lock.open")
-                        .font(.system(size: 40))
-                        .foregroundStyle(.secondary)
-                    Text("No protected files")
-                        .foregroundStyle(.secondary)
-                    Text("Use \"Protect Files\" to encrypt files, or find existing ones in Settings")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List {
-                    ForEach(files.sorted(by: { $0.path < $1.path })) { file in
-                        HStack {
-                            Image(systemName: "lock.fill")
-                                .foregroundStyle(.green)
-                                .font(.caption)
-                            Text(file.path)
-                                .font(.callout.monospaced())
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer()
-                            Button("Unprotect") {
-                                print("UNPROTECT CLICKED: \(file.path)")
-                                Task { await unsealFile(file) }
-                            }
-                            .buttonStyle(.bordered)
-                            .foregroundStyle(.red)
-                            .font(.callout)
-                        }
-                        .padding(.vertical, 2)
-                        .contextMenu {
-                            Button("Show in Finder") {
-                                NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
-                            }
-                        }
+            if !needsInstall && !needsPassword && !showWelcome {
+                if files.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "lock.open")
+                            .font(.system(size: 40))
+                            .foregroundStyle(.secondary)
+                        Text("No protected files")
+                            .foregroundStyle(.secondary)
+                        Text("Use \"Protect Files\" to encrypt files, or find existing ones in Settings")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if !files.isEmpty {
+                    fileList
                 }
-                .listStyle(.inset)
             }
         }
-        .onAppear {
-            files = store.load()
-            if !mount.isRunning {
-                startMount()
-            }
-        }
+        .onAppear { checkState() }
         .sheet(isPresented: $showSettings) {
-            SettingsView(cli: cli, screen: $screen) { urls in
+            SettingsView(cli: cli, onShowWelcome: { showWelcome = true }) { urls in
                 Task { await findFiles(urls) }
             }
         }
+    }
+
+    // MARK: - Banners
+
+    private var installBanner: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.blue)
+            Text("Setup Required")
+                .font(.title2.bold())
+            VStack(spacing: 4) {
+                if !cli.hasBinary {
+                    Text("TouchFS encryption engine not found")
+                        .foregroundStyle(.secondary)
+                }
+                if !cli.hasFuseT {
+                    Text("fuse-t (filesystem driver) not found")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if installing {
+                ProgressView(installProgress)
+            } else {
+                Button("Install") {
+                    Task { await doInstall() }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var passwordBanner: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "key.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.orange)
+            Text("Set a Password")
+                .font(.title2.bold())
+            Text("This password derives an encryption key stored in your Mac's Keychain.\nAfter this, you'll only need Touch ID.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 400)
+            VStack(spacing: 8) {
+                SecureField("Password", text: $password)
+                    .textFieldStyle(.roundedBorder)
+                SecureField("Confirm password", text: $confirmPassword)
+                    .textFieldStyle(.roundedBorder)
+            }
+            .frame(maxWidth: 300)
+            Button(settingPassword ? "Saving..." : "Continue") {
+                Task { await setPassword() }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(password.isEmpty || settingPassword)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var welcomeBanner: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.blue)
+            Text("TouchFS")
+                .font(.title.bold())
+            Text("Protect your sensitive files with Touch ID encryption.\nAI editors, scripts, and apps can't read them without your fingerprint.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 400)
+            Button("Got it") { showWelcome = false }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - File List
+
+    private var fileList: some View {
+        List {
+            ForEach(files.sorted(by: { $0.path < $1.path })) { file in
+                HStack {
+                    Image(systemName: "lock.fill")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                    Text(file.path)
+                        .font(.callout.monospaced())
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Button("Unprotect") {
+                        Task { await unsealFile(file) }
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundStyle(.red)
+                    .font(.callout)
+                }
+                .padding(.vertical, 2)
+                .contextMenu {
+                    Button("Show in Finder") {
+                        NSWorkspace.shared.selectFile(file.path, inFileViewerRootedAtPath: "")
+                    }
+                }
+            }
+        }
+        .listStyle(.inset)
+    }
+
+    // MARK: - State
+
+    private func checkState() {
+        files = store.load()
+        Task {
+            var ready = cli.hasBinary && cli.hasFuseT
+            if ready { ready = await cli.checkBinaryWorks() }
+            if !ready {
+                needsInstall = true
+                return
+            }
+            needsInstall = false
+            if files.isEmpty {
+                if let status = try? await cli.status(), status.hasKey {
+                    needsPassword = false
+                } else {
+                    needsPassword = true
+                    showWelcome = true
+                }
+            } else {
+                needsPassword = false
+                if !mount.isRunning {
+                    startMount()
+                }
+            }
+        }
+    }
+
+    // MARK: - Install
+
+    private func doInstall() async {
+        installing = true
+        error = nil
+        do {
+            try await Installer.install { msg in installProgress = msg }
+            installing = false
+            needsInstall = false
+            checkState()
+        } catch {
+            self.error = error.localizedDescription
+            installing = false
+        }
+    }
+
+    // MARK: - Password
+
+    private func setPassword() async {
+        error = nil
+        guard password == confirmPassword else {
+            error = "Passwords don't match"
+            return
+        }
+        settingPassword = true
+        do {
+            try await cli.setPassword(password)
+            needsPassword = false
+            showWelcome = false
+            password = ""
+            confirmPassword = ""
+        } catch {
+            self.error = error.localizedDescription
+        }
+        settingPassword = false
     }
 
     // MARK: - Mount
@@ -108,7 +277,6 @@ struct MainView: View {
     private func startMount() {
         guard !files.isEmpty else { return }
         mount.start(binaryPath: cli.binaryPath, filePaths: files.map(\.path))
-        mountRunning = mount.isRunning
     }
 
     private func restartMount() {
@@ -116,15 +284,13 @@ struct MainView: View {
         startMount()
     }
 
-    // MARK: - File Pickers
+    // MARK: - File Actions
 
     private func openSealPanel() {
         let urls = FilePicker.pickFiles(title: "Select files to protect")
         guard !urls.isEmpty else { return }
         Task { await sealFiles(urls) }
     }
-
-    // MARK: - Actions
 
     private func sealFiles(_ urls: [URL]) async {
         error = nil
@@ -134,20 +300,17 @@ struct MainView: View {
         for url in urls {
             let path = url.path
 
-            // Already managed.
             if files.contains(where: { $0.path == path }) {
                 skipped.append("\(url.lastPathComponent) (already managed)")
                 continue
             }
 
-            // Skip symlinks entirely.
             var s = stat()
             if lstat(path, &s) == 0 && (s.st_mode & S_IFLNK) == S_IFLNK {
                 skipped.append("\(url.lastPathComponent) (symlink, skipped)")
                 continue
             }
 
-            // Already sealed — suggest importing via Settings.
             if cli.isSealedFile(path: path) {
                 skipped.append("\(url.lastPathComponent) is already sealed — use Settings → Find Sealed Files to import it")
                 continue
@@ -201,7 +364,6 @@ struct MainView: View {
         do {
             try await cli.unseal(path: file.path)
         } catch {
-            // File not sealed or missing — remove from config anyway.
             print("Unseal failed for \(file.path): \(error). Removing from config.")
         }
         files.removeAll { $0.id == file.id }

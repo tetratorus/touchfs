@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     let cli: CLIService
-    @Binding var screen: AppScreen
+    let onShowWelcome: () -> Void
     let onImportFiles: ([URL]) -> Void
     @Environment(\.dismiss) var dismiss
 
@@ -29,11 +29,11 @@ struct SettingsView: View {
 
                     Text("Import Existing Files")
                         .font(.headline)
-                    Text("Find previously sealed files and add them to the app.")
+                    Text("Find previously protected files and add them to the app.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button("Find Sealed Files...") {
-                        let urls = FilePicker.pickFiles(title: "Select sealed files to import")
+                    Button("Find Protected Files...") {
+                        let urls = FilePicker.pickFiles(title: "Select protected files to import")
                         if !urls.isEmpty {
                             onImportFiles(urls)
                             dismiss()
@@ -42,7 +42,7 @@ struct SettingsView: View {
 
                     Divider()
 
-                    EngineSection(cli: cli, screen: $screen)
+                    EngineSection(cli: cli)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -54,14 +54,14 @@ struct SettingsView: View {
 
                     Divider()
 
-                    Button("Show Onboarding") {
-                        dismiss()
-                        screen = .onboarding
-                    }
+                    ChangePasswordSection(cli: cli, store: store, mount: mount)
 
                     Divider()
 
-                    ChangePasswordSection(cli: cli, store: store, mount: mount)
+                    Button("About TouchFS") {
+                        dismiss()
+                        onShowWelcome()
+                    }
 
                     Divider()
 
@@ -120,21 +120,14 @@ struct SettingsView: View {
         for file in files {
             do {
                 try await cli.unseal(path: file.path)
-            } catch {
-                // Ignore — file might not be sealed or might be missing.
-            }
+            } catch {}
         }
 
         store.save([])
-        do {
-            try await cli.reset()
-        } catch {}
-
-        // Remove CLI symlink if exists.
+        do { try await cli.reset() } catch {}
         try? FileManager.default.removeItem(atPath: "/usr/local/bin/touchfs")
 
         resetting = false
         dismiss()
-        screen = .onboarding
     }
 }
