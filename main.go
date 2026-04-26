@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -96,6 +97,10 @@ func main() {
 		cmdSet()
 	case "reset":
 		cmdReset()
+	case "status":
+		cmdStatus()
+	case "scan":
+		cmdScan()
 	case "version", "-v":
 		fmt.Println(version)
 	default:
@@ -111,12 +116,14 @@ key, which is stored in macOS Keychain (Touch ID protected). After setup,
 Touch ID is all you need.
 
 Usage:
-  touchfs seal   [-p] <file>   Encrypt a file in-place
-  touchfs unseal [-p] <file>   Decrypt a sealed file back to plaintext
+  touchfs seal   [-p] <file>    Encrypt a file in-place
+  touchfs unseal [-p] <file>    Decrypt a sealed file back to plaintext
   touchfs mount  [path...]      Mount FUSE for files and/or directories (default: .)
-  touchfs set                  Create or update password in Keychain
-  touchfs reset                Delete key from Keychain
-  touchfs version              Print version
+  touchfs set    [--stdin]      Create or update password in Keychain
+  touchfs reset                 Delete key from Keychain
+  touchfs status                Check key status (JSON, no Touch ID)
+  touchfs scan   [path]         Find sealed files in directory (default: ~)
+  touchfs version               Print version
 
 Options:
   -p    Use password instead of Touch ID/Keychain
@@ -286,17 +293,34 @@ func cmdUnseal() {
 
 // cmdSet creates or updates the password-derived key in the Keychain.
 func cmdSet() {
-	pw, err := promptPassword("Password: ")
-	if err != nil {
-		log.Fatalf("password: %v", err)
-	}
-	if len(pw) == 0 {
-		log.Fatal("password cannot be empty")
+	useStdin := len(os.Args) >= 3 && os.Args[2] == "--stdin"
+
+	var pw, confirm []byte
+	var err error
+
+	if useStdin {
+		scanner := bufio.NewScanner(os.Stdin)
+		if !scanner.Scan() {
+			log.Fatal("expected password on stdin")
+		}
+		pw = []byte(scanner.Text())
+		if !scanner.Scan() {
+			log.Fatal("expected password confirmation on stdin")
+		}
+		confirm = []byte(scanner.Text())
+	} else {
+		pw, err = promptPassword("Password: ")
+		if err != nil {
+			log.Fatalf("password: %v", err)
+		}
+		confirm, err = promptPassword("Confirm password: ")
+		if err != nil {
+			log.Fatalf("password: %v", err)
+		}
 	}
 
-	confirm, err := promptPassword("Confirm password: ")
-	if err != nil {
-		log.Fatalf("password: %v", err)
+	if len(pw) == 0 {
+		log.Fatal("password cannot be empty")
 	}
 	if !bytes.Equal(pw, confirm) {
 		log.Fatal("passwords do not match")
@@ -315,6 +339,53 @@ func cmdReset() {
 		log.Fatalf("reset: %v", err)
 	}
 	fmt.Println("Key deleted from Keychain")
+}
+
+// cmdStatus prints key status as JSON without triggering Touch ID.
+func cmdStatus() {
+	status := struct {
+		HasKey  bool   `json:"has_key"`
+		Version string `json:"version"`
+	}{
+		HasKey:  keychainHas(),
+		Version: version,
+	}
+	json.NewEncoder(os.Stdout).Encode(status)
+}
+
+// cmdScan walks a directory tree and prints absolute paths of sealed files.
+func cmdScan() {
+	var dir string
+	if len(os.Args) >= 3 {
+		dir = os.Args[2]
+	} else {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatalf("home dir: %v", err)
+		}
+		dir = home
+	}
+
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		log.Fatalf("resolve path: %v", err)
+	}
+
+	fi, err := os.Stat(absDir)
+	if err != nil {
+		log.Fatalf("path: %v", err)
+	}
+	if !fi.IsDir() {
+		log.Fatalf("%s is not a directory", absDir)
+	}
+
+	sealed, err := scanSealedFiles(absDir)
+	if err != nil {
+		log.Fatalf("scan: %v", err)
+	}
+	for rel := range sealed {
+		fmt.Println(filepath.Join(absDir, rel))
+	}
 }
 
 // cmdMount mounts sealed files via FUSE. Accepts any mix of files and directories.
