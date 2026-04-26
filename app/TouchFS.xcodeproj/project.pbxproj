@@ -21,6 +21,7 @@
 		CEA511DB09449F379AC63428 /* CLIInstallSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5CF9FF28D341A89D6E7BAC7 /* CLIInstallSection.swift */; };
 		DF6FA2A8212D8EE23387BC16 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A381BC3097267A8D0D2EEC22 /* OnboardingView.swift */; };
 		E8508B758BE105CDAC8B35D7 /* SealedFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5441B51152BC937674D0489D /* SealedFile.swift */; };
+		F771D67392C043038CE4AACB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D62387D7EA9A8C745D4C7DC1 /* Assets.xcassets */; };
 		FA18AC0BC8E9D13EEEC29FFC /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD66C7A0C1081C7249C08C5 /* StatusView.swift */; };
 /* End PBXBuildFile section */
 
@@ -38,6 +39,7 @@
 		B2B63F9BE75FCB5E5715B8DB /* FilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePicker.swift; sourceTree = "<group>"; };
 		C4793B14DECCB06F290F4D55 /* TouchFS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TouchFS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D5A12B0FADFFD5FEA8126F90 /* InstallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallView.swift; sourceTree = "<group>"; };
+		D62387D7EA9A8C745D4C7DC1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E262C5DA4108F84721257341 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EA4436D1F0EFFA24072362B5 /* MountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountService.swift; sourceTree = "<group>"; };
 		ECD66C7A0C1081C7249C08C5 /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
@@ -97,6 +99,7 @@
 		B3A31F9B02278433953692C1 /* TouchFS */ = {
 			isa = PBXGroup;
 			children = (
+				D62387D7EA9A8C745D4C7DC1 /* Assets.xcassets */,
 				ECD66C7A0C1081C7249C08C5 /* StatusView.swift */,
 				6496A7A537E9353891EF8B99 /* TouchFSApp.swift */,
 				40809ACFC4C99A0E59A6579A /* Models */,
@@ -114,6 +117,7 @@
 			buildConfigurationList = 459DF6869BA7F2C48EEAA178 /* Build configuration list for PBXNativeTarget "TouchFS" */;
 			buildPhases = (
 				3776047F3C85B834F192D46B /* Sources */,
+				84A95BC4EE4081377B6F8918 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -159,6 +163,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		84A95BC4EE4081377B6F8918 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F771D67392C043038CE4AACB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		3776047F3C85B834F192D46B /* Sources */ = {

@@ -24,7 +24,7 @@ struct TouchFSApp: App {
             }
         }
 
-        MenuBarExtra("TouchFS", systemImage: "lock.shield") {
+        MenuBarExtra("TouchFS", image: "MenuBarIcon") {
             let count = FileStore().load().count
             Text("Protecting \(count) file\(count == 1 ? "" : "s")")
 

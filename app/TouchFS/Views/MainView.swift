@@ -23,7 +23,7 @@ struct MainView: View {
                     Image(systemName: "gear")
                 }
                 .buttonStyle(.plain)
-                Button("Protect Files") { openProtectPanel() }
+                Button("Protect Files") { openSealPanel() }
                     .buttonStyle(.borderedProminent)
             }
             .padding()
@@ -53,7 +53,7 @@ struct MainView: View {
                         .foregroundStyle(.secondary)
                     Text("No protected files")
                         .foregroundStyle(.secondary)
-                    Text("Use \"Protect Files\" to seal files, or \"Find Sealed Files\" to import existing ones")
+                    Text("Use \"Protect Files\" to encrypt files, or find existing ones in Settings")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
@@ -72,7 +72,7 @@ struct MainView: View {
                                 .truncationMode(.middle)
                             Spacer()
                             Button("Unprotect") {
-                                Task { await unprotect(file) }
+                                Task { await unsealFile(file) }
                             }
                             .buttonStyle(.plain)
                             .foregroundStyle(.red)
@@ -115,15 +115,15 @@ struct MainView: View {
 
     // MARK: - File Pickers
 
-    private func openProtectPanel() {
+    private func openSealPanel() {
         let urls = FilePicker.pickFiles(title: "Select files to protect")
         guard !urls.isEmpty else { return }
-        Task { await protectFiles(urls) }
+        Task { await sealFiles(urls) }
     }
 
     // MARK: - Actions
 
-    private func protectFiles(_ urls: [URL]) async {
+    private func sealFiles(_ urls: [URL]) async {
         error = nil
         var added = 0
         var skipped: [String] = []
@@ -133,7 +133,7 @@ struct MainView: View {
 
             // Already managed.
             if files.contains(where: { $0.path == path }) {
-                skipped.append("\(url.lastPathComponent) (already protected)")
+                skipped.append("\(url.lastPathComponent) (already managed)")
                 continue
             }
 
@@ -192,7 +192,7 @@ struct MainView: View {
         }
     }
 
-    private func unprotect(_ file: SealedFile) async {
+    private func unsealFile(_ file: SealedFile) async {
         error = nil
         do {
             // Stop mount first — restores symlinks back to sealed files.

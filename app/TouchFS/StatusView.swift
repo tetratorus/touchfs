@@ -29,6 +29,14 @@ struct ContentView: View {
                 screen = .install
                 return
             }
+            // If there are files in the config, go straight to main view.
+            // The mount will trigger Touch ID once — no need for a separate status check.
+            let files = FileStore().load()
+            if !files.isEmpty {
+                screen = .main
+                return
+            }
+            // No files — check if key exists to decide onboarding vs main.
             do {
                 let status = try await cli.status()
                 screen = status.hasKey ? .main : .onboarding

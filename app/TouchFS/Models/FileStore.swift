@@ -8,7 +8,9 @@ class FileStore {
 
     func load() -> [SealedFile] {
         guard let data = try? Data(contentsOf: configURL) else { return [] }
-        return (try? JSONDecoder().decode([SealedFile].self, from: data)) ?? []
+        let files = (try? JSONDecoder().decode([SealedFile].self, from: data)) ?? []
+        // Filter out any invalid entries (e.g. FUSE mount paths from bugs).
+        return files.filter { !$0.path.contains("/var/folders/") }
     }
 
     func save(_ files: [SealedFile]) {

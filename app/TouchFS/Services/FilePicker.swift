@@ -9,6 +9,8 @@ struct FilePicker {
         panel.canChooseDirectories = false
         panel.showsHiddenFiles = true
 
+        panel.resolvesAliases = false
+
         guard panel.runModal() == .OK else { return [] }
         return panel.urls
     }

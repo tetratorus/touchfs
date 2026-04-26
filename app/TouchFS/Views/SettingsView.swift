@@ -54,6 +54,13 @@ struct SettingsView: View {
 
                     Divider()
 
+                    Button("Show Onboarding") {
+                        dismiss()
+                        screen = .onboarding
+                    }
+
+                    Divider()
+
                     Text("Reset TouchFS")
                         .font(.headline)
                     Text("Unprotects all files, deletes your key, and returns to setup.")
