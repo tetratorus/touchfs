@@ -75,7 +75,7 @@ struct EngineSection: View {
     private func uninstall() {
         error = nil
         do {
-            try FileManager.default.removeItem(atPath: "/Applications/touchfs.app")
+            try FileManager.default.removeItem(atPath: CLIService.installedDir)
             confirmUninstall = false
             screen = .install
         } catch {

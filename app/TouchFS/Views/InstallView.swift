@@ -17,8 +17,16 @@ struct InstallView: View {
             Text("Setup Required")
                 .font(.largeTitle.bold())
 
-            Text("The TouchFS encryption tool needs to be installed.")
-                .foregroundStyle(.secondary)
+            VStack(spacing: 4) {
+                if !cli.hasBinary {
+                    Text("TouchFS encryption engine not found")
+                        .foregroundStyle(.secondary)
+                }
+                if !cli.hasFuseT {
+                    Text("fuse-t (filesystem driver) not found")
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             if installing {
                 ProgressView(progress)

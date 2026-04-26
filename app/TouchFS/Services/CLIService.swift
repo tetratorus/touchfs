@@ -11,11 +11,28 @@ struct CLIStatus: Codable {
 }
 
 class CLIService {
-    static let installedPath = "/Applications/touchfs.app/Contents/MacOS/touchfs"
+    static let installedDir = NSHomeDirectory() + "/Library/Application Support/touchfs"
+    static let installedPath = installedDir + "/touchfs"
 
     var isInstalled: Bool {
-        FileManager.default.isExecutableFile(atPath: Self.installedPath)
+        hasBinary && hasFuseT
     }
+
+    var hasBinary: Bool {
+        // Check all known locations.
+        for path in [Self.installedPath, "/Applications/touchfs.app/Contents/MacOS/touchfs", "/usr/local/bin/touchfs", "/opt/homebrew/bin/touchfs"] {
+            if FileManager.default.isExecutableFile(atPath: path) {
+                return true
+            }
+        }
+        return false
+    }
+
+    var hasFuseT: Bool {
+        FileManager.default.fileExists(atPath: "/usr/local/lib/libfuse-t.dylib")
+        && FileManager.default.isExecutableFile(atPath: "/usr/local/bin/go-nfsv4")
+    }
+
 
     var binaryPath: String {
         if FileManager.default.isExecutableFile(atPath: Self.installedPath) {

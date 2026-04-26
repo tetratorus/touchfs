@@ -4,6 +4,8 @@ struct CLIInstallSection: View {
     @State private var installed = FileManager.default.fileExists(atPath: "/usr/local/bin/touchfs")
     @State private var error: String?
 
+    private let cli = CLIService()
+
     var body: some View {
         Text("CLI Tool")
             .font(.headline)
@@ -36,13 +38,8 @@ struct CLIInstallSection: View {
 
     private func installCLI() {
         error = nil
-        let source = CLIService.installedPath
+        let source = cli.binaryPath
         let dest = "/usr/local/bin/touchfs"
-
-        guard FileManager.default.fileExists(atPath: source) else {
-            error = "TouchFS engine not installed yet"
-            return
-        }
 
         do {
             try FileManager.default.createDirectory(atPath: "/usr/local/bin", withIntermediateDirectories: true)

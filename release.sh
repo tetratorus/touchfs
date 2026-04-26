@@ -2,17 +2,21 @@
 set -e
 
 if [ -z "$1" ]; then
-  echo "Usage: ./release.sh v1.0.1"
+  echo "Usage: ./release.sh v1.0.0"
   exit 1
 fi
 
 VERSION=$1
-TAP_DIR="/tmp/homebrew-tap"
+DIST_IDENTITY="Developer ID Application: Leonard Tan (X44L3QQYVR)"
 
-echo "=== Building ==="
-make dist VERSION="$VERSION"
+echo "=== Building Go CLI ==="
+mkdir -p touchfs.app/Contents/MacOS
+cp Info.plist touchfs.app/Contents/Info.plist
+cp embedded.provisionprofile touchfs.app/Contents/embedded.provisionprofile
+go build -ldflags "-X main.version=$VERSION" -o touchfs.app/Contents/MacOS/touchfs .
+codesign --force --options runtime --sign "$DIST_IDENTITY" --entitlements entitlements.plist touchfs.app
 
-echo "=== Notarizing ==="
+echo "=== Notarizing CLI ==="
 rm -f touchfs.zip
 ditto -c -k --keepParent touchfs.app touchfs.zip
 xcrun notarytool submit touchfs.zip --keychain-profile touchfs --wait
@@ -20,26 +24,57 @@ xcrun stapler staple touchfs.app
 rm -f touchfs.zip
 ditto -c -k --keepParent touchfs.app touchfs.zip
 
-SHA=$(shasum -a 256 touchfs.zip | awk '{print $1}')
-echo "SHA256: $SHA"
+echo "=== Building Swift app ==="
+cd app
+xcodegen generate
+rm -rf ~/Library/Developer/Xcode/DerivedData/TouchFS-*
+xcodebuild -project TouchFS.xcodeproj -scheme TouchFS -configuration Release clean build
+
+BUILD_DIR=$(xcodebuild -project TouchFS.xcodeproj -scheme TouchFS -configuration Release -showBuildSettings 2>/dev/null | grep " BUILD_DIR = " | sed 's/.*= //')
+APP="$BUILD_DIR/Release/TouchFS.app"
+
+echo "=== Signing app ==="
+codesign --force --options runtime --sign "$DIST_IDENTITY" "$APP"
+
+echo "=== Notarizing app ==="
+rm -f TouchFS.zip
+ditto -c -k --keepParent "$APP" TouchFS.zip
+xcrun notarytool submit TouchFS.zip --keychain-profile touchfs --wait
+xcrun stapler staple "$APP"
+rm -f TouchFS.zip
+
+echo "=== Creating DMG ==="
+DMG_NAME="TouchFS-${VERSION}.dmg"
+rm -f "$DMG_NAME"
+STAGING=$(mktemp -d)
+cp -R "$APP" "$STAGING/"
+ln -s /Applications "$STAGING/Applications"
+hdiutil create -volname "TouchFS" -srcfolder "$STAGING" -ov -format UDZO "$DMG_NAME"
+rm -rf "$STAGING"
+codesign --force --sign "$DIST_IDENTITY" "$DMG_NAME"
+xcrun notarytool submit "$DMG_NAME" --keychain-profile touchfs --wait
+xcrun stapler staple "$DMG_NAME"
+
+cd ..
 
 echo "=== Committing ==="
-git add *.go go.mod go.sum Makefile README.md release.sh
+git add *.go go.mod go.sum Makefile README.md release.sh app/
 git diff --cached --quiet || git commit -m "Release $VERSION"
 git push
 
 echo "=== Creating GitHub release ==="
 if gh release view "$VERSION" > /dev/null 2>&1; then
-  echo "Release $VERSION already exists, uploading asset..."
-  gh release upload "$VERSION" touchfs.zip --clobber
+  echo "Release $VERSION exists, uploading assets..."
+  gh release upload "$VERSION" touchfs.zip "app/$DMG_NAME" --clobber
 else
-  gh release create "$VERSION" touchfs.zip --title "$VERSION" --notes "Release $VERSION"
+  gh release create "$VERSION" touchfs.zip "app/$DMG_NAME" --title "$VERSION" --notes "Release $VERSION"
 fi
 
 echo "=== Updating Homebrew tap ==="
+SHA=$(shasum -a 256 touchfs.zip | awk '{print $1}')
+TAP_DIR="/tmp/homebrew-tap"
 rm -rf "$TAP_DIR"
 git clone git@github.com:tetratorus/homebrew-tap.git "$TAP_DIR"
-
 cat > "$TAP_DIR/Casks/touchfs.rb" << EOF
 cask "touchfs" do
   version "${VERSION#v}"
@@ -61,7 +96,6 @@ cask "touchfs" do
   zap trash: []
 end
 EOF
-
 cd "$TAP_DIR"
 git add Casks/touchfs.rb
 git commit -m "Update touchfs to $VERSION"
@@ -69,4 +103,6 @@ git push
 cd -
 
 echo "=== Done ==="
-echo "brew tap tetratorus/tap && brew install --cask touchfs"
+echo "CLI: touchfs.zip"
+echo "App: app/$DMG_NAME"
+echo "GitHub: https://github.com/tetratorus/touchfs/releases/tag/$VERSION"
