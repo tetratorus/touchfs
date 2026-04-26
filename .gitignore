@@ -1,5 +1,7 @@
 touchfs.app/
+touchfs-cli.app/
 touchfs.zip
+touchfs-cli.zip
 touchfs.tar.gz
 test-keychain/
 touchfs.provisionprofile

@@ -10,19 +10,19 @@ VERSION=$1
 DIST_IDENTITY="Developer ID Application: Leonard Tan (X44L3QQYVR)"
 
 echo "=== Building Go CLI ==="
-mkdir -p touchfs.app/Contents/MacOS
-cp Info.plist touchfs.app/Contents/Info.plist
-cp embedded.provisionprofile touchfs.app/Contents/embedded.provisionprofile
-go build -ldflags "-X main.version=$VERSION" -o touchfs.app/Contents/MacOS/touchfs .
-codesign --force --options runtime --sign "$DIST_IDENTITY" --entitlements entitlements.plist touchfs.app
+mkdir -p touchfs-cli.app/Contents/MacOS
+cp Info.plist touchfs-cli.app/Contents/Info.plist
+cp embedded.provisionprofile touchfs-cli.app/Contents/embedded.provisionprofile
+go build -ldflags "-X main.version=$VERSION" -o touchfs-cli.app/Contents/MacOS/touchfs .
+codesign --force --options runtime --sign "$DIST_IDENTITY" --entitlements entitlements.plist touchfs-cli.app
 
 echo "=== Notarizing CLI ==="
-rm -f touchfs.zip
-ditto -c -k --keepParent touchfs.app touchfs.zip
-xcrun notarytool submit touchfs.zip --keychain-profile touchfs --wait
-xcrun stapler staple touchfs.app
-rm -f touchfs.zip
-ditto -c -k --keepParent touchfs.app touchfs.zip
+rm -f touchfs-cli.zip
+ditto -c -k --keepParent touchfs-cli.app touchfs-cli.zip
+xcrun notarytool submit touchfs-cli.zip --keychain-profile touchfs --wait
+xcrun stapler staple touchfs-cli.app
+rm -f touchfs-cli.zip
+ditto -c -k --keepParent touchfs-cli.app touchfs-cli.zip
 
 echo "=== Building Swift app ==="
 cd app
@@ -65,13 +65,13 @@ git push
 echo "=== Creating GitHub release ==="
 if gh release view "$VERSION" > /dev/null 2>&1; then
   echo "Release $VERSION exists, uploading assets..."
-  gh release upload "$VERSION" touchfs.zip "app/$DMG_NAME" --clobber
+  gh release upload "$VERSION" touchfs-cli.zip "app/$DMG_NAME" --clobber
 else
-  gh release create "$VERSION" touchfs.zip "app/$DMG_NAME" --title "$VERSION" --notes "Release $VERSION"
+  gh release create "$VERSION" touchfs-cli.zip "app/$DMG_NAME" --title "$VERSION" --notes "Release $VERSION"
 fi
 
 echo "=== Updating Homebrew tap ==="
-SHA=$(shasum -a 256 touchfs.zip | awk '{print $1}')
+SHA=$(shasum -a 256 touchfs-cli.zip | awk '{print $1}')
 TAP_DIR="/tmp/homebrew-tap"
 rm -rf "$TAP_DIR"
 git clone git@github.com:tetratorus/homebrew-tap.git "$TAP_DIR"
@@ -80,16 +80,16 @@ cask "touchfs" do
   version "${VERSION#v}"
   sha256 "$SHA"
 
-  url "https://github.com/tetratorus/touchfs/releases/download/v#{version}/touchfs.zip"
+  url "https://github.com/tetratorus/touchfs/releases/download/v#{version}/touchfs-cli.zip"
   name "touchfs"
   desc "Touch ID-gated encrypted files"
   homepage "https://github.com/tetratorus/touchfs"
 
   depends_on cask: "fuse-t"
 
-  app "touchfs.app"
+  app "touchfs-cli.app"
 
-  binary "#{appdir}/touchfs.app/Contents/MacOS/touchfs"
+  binary "#{appdir}/touchfs-cli.app/Contents/MacOS/touchfs"
 
   uninstall quit: "com.bluzuli.touchfs"
 
@@ -103,6 +103,6 @@ git push
 cd -
 
 echo "=== Done ==="
-echo "CLI: touchfs.zip"
+echo "CLI: touchfs-cli.zip"
 echo "App: app/$DMG_NAME"
 echo "GitHub: https://github.com/tetratorus/touchfs/releases/tag/$VERSION"

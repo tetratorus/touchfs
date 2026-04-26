@@ -1,4 +1,4 @@
-APP      = touchfs.app
+APP      = touchfs-cli.app
 BINARY   = $(APP)/Contents/MacOS/touchfs
 IDENTITY ?= Apple Development: Leonard Tan (288HB2PKTS)
 DIST_IDENTITY = Developer ID Application: Leonard Tan (X44L3QQYVR)

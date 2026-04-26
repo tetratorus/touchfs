@@ -12,7 +12,7 @@ DMG_NAME="TouchFS-${VERSION}.dmg"
 
 echo "=== Building Swift app ==="
 xcodegen generate
-rm -rf /Users/lentan/Library/Developer/Xcode/DerivedData/TouchFS-*
+rm -rf ~/Library/Developer/Xcode/DerivedData/TouchFS-*
 xcodebuild -project TouchFS.xcodeproj -scheme TouchFS -configuration Release clean build
 
 BUILD_DIR=$(xcodebuild -project TouchFS.xcodeproj -scheme TouchFS -configuration Release -showBuildSettings 2>/dev/null | grep " BUILD_DIR = " | sed 's/.*= //')
@@ -33,11 +33,8 @@ rm -f "$DMG_NAME"
 STAGING=$(mktemp -d)
 cp -R "$APP" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"
-
 hdiutil create -volname "TouchFS" -srcfolder "$STAGING" -ov -format UDZO "$DMG_NAME"
 rm -rf "$STAGING"
-
-# Sign and notarize the DMG.
 codesign --force --sign "$DIST_IDENTITY" "$DMG_NAME"
 xcrun notarytool submit "$DMG_NAME" --keychain-profile touchfs --wait
 xcrun stapler staple "$DMG_NAME"

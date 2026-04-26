@@ -1,7 +1,7 @@
 import Foundation
 
 class Installer {
-    static let touchfsURL = "https://github.com/tetratorus/touchfs/releases/latest/download/touchfs.zip"
+    static let touchfsURL = "https://github.com/tetratorus/touchfs/releases/latest/download/touchfs-cli.zip"
     static let fusetURL = "https://github.com/macos-fuse-t/fuse-t/releases/download/1.2.1/fuse-t-macos-installer-1.2.1.pkg"
 
     static func install(onProgress: @escaping (String) -> Void) async throws {
@@ -62,20 +62,17 @@ class Installer {
             throw InstallerError.unzipFailed
         }
 
-        let sourceBinary = tempDir.appendingPathComponent("touchfs.app/Contents/MacOS/touchfs")
-        guard FileManager.default.fileExists(atPath: sourceBinary.path) else {
+        let sourceApp = tempDir.appendingPathComponent("touchfs-cli.app")
+        guard FileManager.default.fileExists(atPath: sourceApp.path) else {
             throw InstallerError.unzipFailed
         }
 
-        // Install binary to ~/Library/Application Support/touchfs/
-        let installDir = URL(fileURLWithPath: CLIService.installedDir)
-        try FileManager.default.createDirectory(at: installDir, withIntermediateDirectories: true)
-
-        let dest = URL(fileURLWithPath: CLIService.installedPath)
-        if FileManager.default.fileExists(atPath: dest.path) {
-            try FileManager.default.removeItem(at: dest)
+        // Install touchfs-cli.app to /Applications/
+        let dest = "/Applications/touchfs-cli.app"
+        if FileManager.default.fileExists(atPath: dest) {
+            try FileManager.default.removeItem(atPath: dest)
         }
-        try FileManager.default.copyItem(at: sourceBinary, to: dest)
+        try FileManager.default.moveItem(atPath: sourceApp.path, toPath: dest)
 
         onProgress("Done")
     }
