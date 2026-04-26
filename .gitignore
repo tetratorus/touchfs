@@ -6,3 +6,4 @@ touchfs.provisionprofile
 test
 /touchfs
 .DS_Store
+*.dmg

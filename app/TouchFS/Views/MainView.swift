@@ -91,7 +91,9 @@ struct MainView: View {
         }
         .onAppear {
             files = store.load()
-            startMount()
+            if !mount.isRunning {
+                startMount()
+            }
         }
         .sheet(isPresented: $showSettings) {
             SettingsView(cli: cli, screen: $screen) { urls in
