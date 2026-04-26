@@ -72,9 +72,10 @@ struct MainView: View {
                                 .truncationMode(.middle)
                             Spacer()
                             Button("Unprotect") {
+                                print("UNPROTECT CLICKED: \(file.path)")
                                 Task { await unsealFile(file) }
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.bordered)
                             .foregroundStyle(.red)
                             .font(.callout)
                         }
@@ -196,17 +197,15 @@ struct MainView: View {
 
     private func unsealFile(_ file: SealedFile) async {
         error = nil
+        mount.stop()
         do {
-            // Stop mount first — restores symlinks back to sealed files.
-            mount.stop()
             try await cli.unseal(path: file.path)
-            files.removeAll { $0.id == file.id }
-            store.save(files)
-            startMount()
         } catch {
-            self.error = error.localizedDescription
-            // Restart mount even on failure.
-            startMount()
+            // File not sealed or missing — remove from config anyway.
+            print("Unseal failed for \(file.path): \(error). Removing from config.")
         }
+        files.removeAll { $0.id == file.id }
+        store.save(files)
+        startMount()
     }
 }

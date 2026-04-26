@@ -9,10 +9,6 @@ struct TouchFSApp: App {
         Window("TouchFS", id: "main") {
             ContentView()
                 .frame(minWidth: 500, minHeight: 400)
-                .onAppear {
-                    // During onboarding, show dock icon so user sees the app.
-                    NSApplication.shared.setActivationPolicy(.regular)
-                }
         }
         .commands {
             // Override Cmd+Q to just close the window, not quit.
@@ -56,23 +52,30 @@ struct TouchFSApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        false
-    }
-
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        // If another instance is already running, activate it and quit this one.
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // If another instance is already running, activate it and exit immediately
+        // before SwiftUI creates the MenuBarExtra.
         let bundleID = Bundle.main.bundleIdentifier ?? ""
         let running = NSWorkspace.shared.runningApplications.filter {
             $0.bundleIdentifier == bundleID && $0.processIdentifier != ProcessInfo.processInfo.processIdentifier
         }
         if let existing = running.first {
             existing.activate()
-            NSApplication.shared.terminate(nil)
-            return
+            exit(0)
         }
+    }
 
+    func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.setActivationPolicy(.accessory)
+    }
+
+    func applicationWillBecomeActive(_ notification: Notification) {
+        NSApplication.shared.setActivationPolicy(.regular)
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        NSApplication.shared.setActivationPolicy(.accessory)
+        return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {

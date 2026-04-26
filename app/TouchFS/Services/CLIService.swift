@@ -18,12 +18,19 @@ class CLIService {
     }
 
     var hasBinary: Bool {
-        for path in [Self.installedPath, "/usr/local/bin/touchfs", "/opt/homebrew/bin/touchfs"] {
-            if FileManager.default.isExecutableFile(atPath: path) {
-                return true
-            }
+        // Actually try to run it — file existence checks miss broken symlinks.
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: binaryPath)
+        proc.arguments = ["version"]
+        proc.standardOutput = Pipe()
+        proc.standardError = FileHandle.nullDevice
+        do {
+            try proc.run()
+            proc.waitUntilExit()
+            return proc.terminationStatus == 0
+        } catch {
+            return false
         }
-        return false
     }
 
     var hasFuseT: Bool {

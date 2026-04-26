@@ -112,23 +112,13 @@ struct SettingsView: View {
 
         mount.stop()
 
-        var files = store.load()
-        var failed: [String] = []
+        let files = store.load()
         for file in files {
             do {
                 try await cli.unseal(path: file.path)
             } catch {
-                failed.append(file.filename)
+                // Ignore — file might not be sealed or might be missing.
             }
-        }
-
-        if !failed.isEmpty {
-            self.error = "Failed to unprotect: \(failed.joined(separator: ", "))"
-            files = files.filter { f in failed.contains(f.filename) }
-            store.save(files)
-            mount.start(binaryPath: cli.binaryPath, filePaths: files.map(\.path))
-            resetting = false
-            return
         }
 
         store.save([])
