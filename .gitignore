@@ -4,5 +4,5 @@ touchfs.tar.gz
 test-keychain/
 touchfs.provisionprofile
 test
-touchfs
+/touchfs
 .DS_Store

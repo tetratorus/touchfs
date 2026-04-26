@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TouchFS — User Flows</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro", sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 40px; line-height: 1.6; }
+  h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; color: #fff; }
+  .subtitle { color: #888; margin-bottom: 40px; font-size: 15px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+  .card { background: #161616; border: 1px solid #2a2a2a; border-radius: 12px; padding: 24px; transition: border-color 0.2s; }
+  .card:hover { border-color: #444; }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .card-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .card-title { font-size: 16px; font-weight: 600; color: #fff; }
+  .card-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; margin-left: auto; }
+  .tag-onboarding { background: #1a3a2a; color: #4ade80; }
+  .tag-core { background: #1a2a3a; color: #60a5fa; }
+  .tag-lifecycle { background: #2a1a3a; color: #c084fc; }
+  .tag-settings { background: #3a2a1a; color: #fb923c; }
+  .tag-error { background: #3a1a1a; color: #f87171; }
+  .steps { list-style: none; }
+  .steps li { position: relative; padding: 6px 0 6px 24px; font-size: 14px; color: #aaa; }
+  .steps li::before { content: ""; position: absolute; left: 6px; top: 14px; width: 6px; height: 6px; border-radius: 50%; background: #444; }
+  .steps li:not(:last-child)::after { content: ""; position: absolute; left: 8px; top: 22px; width: 2px; height: calc(100% - 8px); background: #2a2a2a; }
+  .arrow { display: inline; color: #555; }
+  .highlight { color: #e0e0e0; font-weight: 500; }
+  .warning { background: #2a1a0a; border: 1px solid #4a3010; border-radius: 6px; padding: 8px 12px; margin-top: 8px; font-size: 13px; color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<h1>TouchFS User Flows</h1>
+<p class="subtitle">All possible user interactions mapped out</p>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a3a2a;">🚀</div>
+      <div class="card-title">First Launch (New User)</div>
+      <span class="card-tag tag-onboarding">Onboarding</span>
+    </div>
+    <ol class="steps">
+      <li>App opens <span class="arrow">→</span> <span class="highlight">"Checking..."</span> <span class="arrow">→</span> no key found</li>
+      <li>Welcome screen <span class="arrow">→</span> tap <span class="highlight">Continue</span></li>
+      <li>Set password <span class="arrow">→</span> enter + confirm <span class="arrow">→</span> key stored in Keychain</li>
+      <li>Add first file <span class="arrow">→</span> file picker <span class="arrow">→</span> file sealed</li>
+      <li><span class="highlight">"Open TouchFS"</span> <span class="arrow">→</span> Main view + mount starts</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a2a3a;">👤</div>
+      <div class="card-title">First Launch (CLI User)</div>
+      <span class="card-tag tag-onboarding">Onboarding</span>
+    </div>
+    <ol class="steps">
+      <li>App opens <span class="arrow">→</span> Touch ID <span class="arrow">→</span> key found <span class="arrow">→</span> <span class="highlight">Main view</span></li>
+      <li>Empty file list (no config yet)</li>
+      <li><span class="highlight">"Find Sealed Files"</span> <span class="arrow">→</span> pick directory <span class="arrow">→</span> scan</li>
+      <li>Select files to import <span class="arrow">→</span> added to list</li>
+      <li>Mount starts automatically</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a2a3a;">☀️</div>
+      <div class="card-title">Normal Launch</div>
+      <span class="card-tag tag-core">Core</span>
+    </div>
+    <ol class="steps">
+      <li>App opens <span class="arrow">→</span> Touch ID <span class="arrow">→</span> Main view</li>
+      <li>Mount starts with all managed files</li>
+      <li>Activity log populates as files are accessed</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a2a3a;">➕</div>
+      <div class="card-title">Add File</div>
+      <span class="card-tag tag-core">Core</span>
+    </div>
+    <ol class="steps">
+      <li>Click <span class="highlight">"+"</span> or <span class="highlight">"Add File"</span></li>
+      <li>File picker <span class="arrow">→</span> select file</li>
+      <li>File sealed (encrypted in place)</li>
+      <li>Appears in managed list</li>
+      <li>Mount restarts to include new file</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a2a3a;">🖱️</div>
+      <div class="card-title">Add File (Drag & Drop)</div>
+      <span class="card-tag tag-core">Core</span>
+    </div>
+    <ol class="steps">
+      <li>Drag file onto app window</li>
+      <li>File sealed</li>
+      <li>Appears in managed list</li>
+      <li>Mount restarts</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a2a3a;">➖</div>
+      <div class="card-title">Remove File</div>
+      <span class="card-tag tag-core">Core</span>
+    </div>
+    <ol class="steps">
+      <li>Right-click file <span class="arrow">→</span> <span class="highlight">"Remove Protection"</span></li>
+      <li>File unsealed (decrypted to plaintext)</li>
+      <li>Removed from managed list</li>
+      <li>Mount restarts without that file</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a2a3a;">🔍</div>
+      <div class="card-title">Find Sealed Files</div>
+      <span class="card-tag tag-core">Core</span>
+    </div>
+    <ol class="steps">
+      <li>Click <span class="highlight">"Find Sealed Files"</span></li>
+      <li>Directory picker <span class="arrow">→</span> choose scope</li>
+      <li>Progress indicator while scanning</li>
+      <li>Results shown <span class="arrow">→</span> toggle which to import</li>
+      <li><span class="highlight">"Add N Files"</span> <span class="arrow">→</span> mount restarts</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a3a2a;">👁️</div>
+      <div class="card-title">File Access (External App)</div>
+      <span class="card-tag tag-core">Core</span>
+    </div>
+    <ol class="steps">
+      <li>External app reads a sealed file</li>
+      <li>Touch ID prompt (500ms cache per file)</li>
+      <li>Authenticated <span class="arrow">→</span> decrypted content served</li>
+      <li>Logged in Activity: file, time, <span class="highlight">"Opened"</span></li>
+      <li>If denied <span class="arrow">→</span> blocked, logged as <span class="highlight">"Denied"</span></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#1a3a2a;">✏️</div>
+      <div class="card-title">File Modified (External App)</div>
+      <span class="card-tag tag-core">Core</span>
+    </div>
+    <ol class="steps">
+      <li>External app writes to a mounted file</li>
+      <li>On close <span class="arrow">→</span> content re-encrypted</li>
+      <li>Logged as <span class="highlight">"Modified"</span> in Activity</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#2a1a3a;">🪟</div>
+      <div class="card-title">Close Window</div>
+      <span class="card-tag tag-lifecycle">Lifecycle</span>
+    </div>
+    <ol class="steps">
+      <li>Close window (red X or Cmd+W)</li>
+      <li>App keeps running in menu bar</li>
+      <li>Mount stays active — files protected</li>
+      <li>Menu bar <span class="arrow">→</span> <span class="highlight">"Open TouchFS"</span> to reopen</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#2a1a3a;">🚪</div>
+      <div class="card-title">Quit App</div>
+      <span class="card-tag tag-lifecycle">Lifecycle</span>
+    </div>
+    <ol class="steps">
+      <li>Cmd+Q or menu bar <span class="arrow">→</span> <span class="highlight">"Quit"</span></li>
+      <li>Mount receives SIGINT <span class="arrow">→</span> clean shutdown</li>
+      <li>All symlinks restored to sealed files</li>
+      <li>App exits</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#3a1a1a;">💥</div>
+      <div class="card-title">Crash / Force Quit</div>
+      <span class="card-tag tag-error">Error</span>
+    </div>
+    <ol class="steps">
+      <li>Mount process dies without cleanup</li>
+      <li>Sealed files left as broken symlinks</li>
+      <li>Next launch <span class="arrow">→</span> auto-recovers from xattrs</li>
+      <li>Files restored to sealed state</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#3a2a1a;">🔑</div>
+      <div class="card-title">Change Password</div>
+      <span class="card-tag tag-settings">Settings</span>
+    </div>
+    <ol class="steps">
+      <li>Settings <span class="arrow">→</span> <span class="highlight">"Change Password"</span></li>
+      <li>Enter new password + confirm</li>
+      <li>App unseals all files with old key</li>
+      <li>Sets new key <span class="arrow">→</span> re-seals all files</li>
+    </ol>
+    <div class="warning">⚠️ Old key and new key produce different encryption. All files must be re-sealed.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#3a1a1a;">🗑️</div>
+      <div class="card-title">Reset / Start Over</div>
+      <span class="card-tag tag-settings">Settings</span>
+    </div>
+    <ol class="steps">
+      <li>Settings <span class="arrow">→</span> <span class="highlight">"Reset TouchFS"</span></li>
+      <li>Confirmation dialog</li>
+      <li>All managed files unsealed</li>
+      <li>Key deleted from Keychain</li>
+      <li>Config cleared <span class="arrow">→</span> back to onboarding</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#3a2a1a;">💻</div>
+      <div class="card-title">Install CLI</div>
+      <span class="card-tag tag-settings">Settings</span>
+    </div>
+    <ol class="steps">
+      <li>Settings <span class="arrow">→</span> <span class="highlight">"Install CLI"</span></li>
+      <li>Symlinks bundled binary to /usr/local/bin/touchfs</li>
+      <li>May need admin password</li>
+      <li><code>touchfs</code> works in any terminal</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#2a1a3a;">📌</div>
+      <div class="card-title">Menu Bar</div>
+      <span class="card-tag tag-lifecycle">Lifecycle</span>
+    </div>
+    <ol class="steps">
+      <li>Click shield icon in menu bar</li>
+      <li><span class="highlight">"Protecting N files"</span> (status)</li>
+      <li><span class="highlight">"Open TouchFS"</span> <span class="arrow">→</span> focus window</li>
+      <li><span class="highlight">"Quit TouchFS"</span> <span class="arrow">→</span> graceful shutdown</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#3a2a1a;">🔄</div>
+      <div class="card-title">Open at Login</div>
+      <span class="card-tag tag-settings">Settings</span>
+    </div>
+    <ol class="steps">
+      <li>Settings <span class="arrow">→</span> toggle <span class="highlight">"Open at Login"</span></li>
+      <li>App launches on login via SMAppService</li>
+      <li>Sits in menu bar, mount starts</li>
+      <li>Files always protected when Mac is in use</li>
+    </ol>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,372 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C0EE153430D9FEC2955B6A4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E262C5DA4108F84721257341 /* SettingsView.swift */; };
+		1153FCF335CDA91894B1066B /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D7BBDEC1E9C04FF732E0DFB /* MainView.swift */; };
+		11BAA452995DD8277F61880D /* InstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A12B0FADFFD5FEA8126F90 /* InstallView.swift */; };
+		19BD35434B76EF542081083D /* LoginItemToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FF136DCFB5B9D3BA7CD47E5 /* LoginItemToggle.swift */; };
+		1A6BA7526B378B7445833CB1 /* FileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFBF7A1C7D735C811ED330A /* FileStore.swift */; };
+		306834268341627972B2482A /* Installer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7A0B91C591505C66FCFCAE /* Installer.swift */; };
+		321ACC13BF1292C0756AB236 /* CLIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EC479F38EE88AA00355368C /* CLIService.swift */; };
+		4E5B476AA7CF917FBB6EDC39 /* MountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4436D1F0EFFA24072362B5 /* MountService.swift */; };
+		590E42B3AE8E7AE406D0DE10 /* FilePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B63F9BE75FCB5E5715B8DB /* FilePicker.swift */; };
+		99B51FDED6C4A7315D1FBF37 /* EngineSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B10BD5CA9DBE4CACAA59B2D /* EngineSection.swift */; };
+		AD656E068E3AB4C84DE7E51A /* TouchFSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6496A7A537E9353891EF8B99 /* TouchFSApp.swift */; };
+		CEA511DB09449F379AC63428 /* CLIInstallSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5CF9FF28D341A89D6E7BAC7 /* CLIInstallSection.swift */; };
+		DF6FA2A8212D8EE23387BC16 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A381BC3097267A8D0D2EEC22 /* OnboardingView.swift */; };
+		E8508B758BE105CDAC8B35D7 /* SealedFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5441B51152BC937674D0489D /* SealedFile.swift */; };
+		FA18AC0BC8E9D13EEEC29FFC /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD66C7A0C1081C7249C08C5 /* StatusView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0FF136DCFB5B9D3BA7CD47E5 /* LoginItemToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemToggle.swift; sourceTree = "<group>"; };
+		2E7A0B91C591505C66FCFCAE /* Installer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Installer.swift; sourceTree = "<group>"; };
+		4EC479F38EE88AA00355368C /* CLIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIService.swift; sourceTree = "<group>"; };
+		5441B51152BC937674D0489D /* SealedFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealedFile.swift; sourceTree = "<group>"; };
+		5B10BD5CA9DBE4CACAA59B2D /* EngineSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineSection.swift; sourceTree = "<group>"; };
+		5D7BBDEC1E9C04FF732E0DFB /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		6496A7A537E9353891EF8B99 /* TouchFSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchFSApp.swift; sourceTree = "<group>"; };
+		7BFBF7A1C7D735C811ED330A /* FileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileStore.swift; sourceTree = "<group>"; };
+		A381BC3097267A8D0D2EEC22 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		A5CF9FF28D341A89D6E7BAC7 /* CLIInstallSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIInstallSection.swift; sourceTree = "<group>"; };
+		B2B63F9BE75FCB5E5715B8DB /* FilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePicker.swift; sourceTree = "<group>"; };
+		C4793B14DECCB06F290F4D55 /* TouchFS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TouchFS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5A12B0FADFFD5FEA8126F90 /* InstallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallView.swift; sourceTree = "<group>"; };
+		E262C5DA4108F84721257341 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		EA4436D1F0EFFA24072362B5 /* MountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountService.swift; sourceTree = "<group>"; };
+		ECD66C7A0C1081C7249C08C5 /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0805591E6F68C86BD045A92C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C4793B14DECCB06F290F4D55 /* TouchFS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		40809ACFC4C99A0E59A6579A /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7BFBF7A1C7D735C811ED330A /* FileStore.swift */,
+				5441B51152BC937674D0489D /* SealedFile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		4210468715BB31FEEA5C0393 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				4EC479F38EE88AA00355368C /* CLIService.swift */,
+				B2B63F9BE75FCB5E5715B8DB /* FilePicker.swift */,
+				2E7A0B91C591505C66FCFCAE /* Installer.swift */,
+				EA4436D1F0EFFA24072362B5 /* MountService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		7574F4F50C27AFE5D17C0020 = {
+			isa = PBXGroup;
+			children = (
+				B3A31F9B02278433953692C1 /* TouchFS */,
+				0805591E6F68C86BD045A92C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7D6554CE7C2A57F260758EBA /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A5CF9FF28D341A89D6E7BAC7 /* CLIInstallSection.swift */,
+				5B10BD5CA9DBE4CACAA59B2D /* EngineSection.swift */,
+				D5A12B0FADFFD5FEA8126F90 /* InstallView.swift */,
+				0FF136DCFB5B9D3BA7CD47E5 /* LoginItemToggle.swift */,
+				5D7BBDEC1E9C04FF732E0DFB /* MainView.swift */,
+				A381BC3097267A8D0D2EEC22 /* OnboardingView.swift */,
+				E262C5DA4108F84721257341 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B3A31F9B02278433953692C1 /* TouchFS */ = {
+			isa = PBXGroup;
+			children = (
+				ECD66C7A0C1081C7249C08C5 /* StatusView.swift */,
+				6496A7A537E9353891EF8B99 /* TouchFSApp.swift */,
+				40809ACFC4C99A0E59A6579A /* Models */,
+				4210468715BB31FEEA5C0393 /* Services */,
+				7D6554CE7C2A57F260758EBA /* Views */,
+			);
+			path = TouchFS;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F3811D8A6B61C491FF6A1767 /* TouchFS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 459DF6869BA7F2C48EEAA178 /* Build configuration list for PBXNativeTarget "TouchFS" */;
+			buildPhases = (
+				3776047F3C85B834F192D46B /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TouchFS;
+			packageProductDependencies = (
+			);
+			productName = TouchFS;
+			productReference = C4793B14DECCB06F290F4D55 /* TouchFS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4E3408AE0554E5FD9532A594 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					F3811D8A6B61C491FF6A1767 = {
+						DevelopmentTeam = X44L3QQYVR;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 202D74CE4C1305DA070A1401 /* Build configuration list for PBXProject "TouchFS" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7574F4F50C27AFE5D17C0020;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F3811D8A6B61C491FF6A1767 /* TouchFS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3776047F3C85B834F192D46B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CEA511DB09449F379AC63428 /* CLIInstallSection.swift in Sources */,
+				321ACC13BF1292C0756AB236 /* CLIService.swift in Sources */,
+				99B51FDED6C4A7315D1FBF37 /* EngineSection.swift in Sources */,
+				590E42B3AE8E7AE406D0DE10 /* FilePicker.swift in Sources */,
+				1A6BA7526B378B7445833CB1 /* FileStore.swift in Sources */,
+				11BAA452995DD8277F61880D /* InstallView.swift in Sources */,
+				306834268341627972B2482A /* Installer.swift in Sources */,
+				19BD35434B76EF542081083D /* LoginItemToggle.swift in Sources */,
+				1153FCF335CDA91894B1066B /* MainView.swift in Sources */,
+				4E5B476AA7CF917FBB6EDC39 /* MountService.swift in Sources */,
+				DF6FA2A8212D8EE23387BC16 /* OnboardingView.swift in Sources */,
+				E8508B758BE105CDAC8B35D7 /* SealedFile.swift in Sources */,
+				0C0EE153430D9FEC2955B6A4 /* SettingsView.swift in Sources */,
+				FA18AC0BC8E9D13EEEC29FFC /* StatusView.swift in Sources */,
+				AD656E068E3AB4C84DE7E51A /* TouchFSApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		2534696BB02BE57038C440B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		5C8880A52ACB4F2518B140AC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A7E376818D1199694B93638D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = X44L3QQYVR;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bluzuli.touchfs;
+				PRODUCT_NAME = TouchFS;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		F7BB625A97EE00566B4913F2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = X44L3QQYVR;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.bluzuli.touchfs;
+				PRODUCT_NAME = TouchFS;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		202D74CE4C1305DA070A1401 /* Build configuration list for PBXProject "TouchFS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2534696BB02BE57038C440B5 /* Debug */,
+				5C8880A52ACB4F2518B140AC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		459DF6869BA7F2C48EEAA178 /* Build configuration list for PBXNativeTarget "TouchFS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F7BB625A97EE00566B4913F2 /* Debug */,
+				A7E376818D1199694B93638D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4E3408AE0554E5FD9532A594 /* Project object */;
+}
