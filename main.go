@@ -101,6 +101,8 @@ func main() {
 		cmdStatus()
 	case "scan":
 		cmdScan()
+	case "recover":
+		cmdRecover()
 	case "version", "-v":
 		fmt.Println(version)
 	default:
@@ -123,6 +125,7 @@ Usage:
   touchfs reset                 Delete key from Keychain
   touchfs status                Check key status (JSON, no Touch ID)
   touchfs scan   [path]         Find sealed files in directory (default: ~)
+  touchfs recover <file>        Restore a broken symlink from a crashed mount
   touchfs version               Print version
 
 Options:
@@ -388,6 +391,32 @@ func cmdScan() {
 	for rel := range sealed {
 		fmt.Println(filepath.Join(absDir, rel))
 	}
+}
+
+// cmdRecover restores a broken symlink from a crashed mount.
+func cmdRecover() {
+	if len(os.Args) < 3 {
+		fmt.Fprintf(os.Stderr, "Usage: touchfs recover <file>\n")
+		os.Exit(1)
+	}
+
+	path, err := filepath.Abs(os.Args[2])
+	if err != nil {
+		log.Fatalf("resolve path: %v", err)
+	}
+
+	fi, err := os.Lstat(path)
+	if err != nil {
+		log.Fatalf("lstat: %v", err)
+	}
+	if fi.Mode()&os.ModeSymlink == 0 {
+		log.Fatalf("%s is not a symlink", path)
+	}
+
+	if err := restoreFromXattr(path); err != nil {
+		log.Fatalf("recover: %v", err)
+	}
+	fmt.Printf("Recovered %s\n", path)
 }
 
 // cmdMount mounts sealed files via FUSE. Accepts any mix of files and directories.
