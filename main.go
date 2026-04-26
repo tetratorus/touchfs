@@ -341,13 +341,15 @@ func cmdReset() {
 	fmt.Println("Key deleted from Keychain")
 }
 
-// cmdStatus prints key status as JSON without triggering Touch ID.
+// cmdStatus prints key status as JSON.
 func cmdStatus() {
+	key, err := keychainLoad()
+	hasKey := key != nil || err != nil
 	status := struct {
 		HasKey  bool   `json:"has_key"`
 		Version string `json:"version"`
 	}{
-		HasKey:  keychainHas(),
+		HasKey:  hasKey,
 		Version: version,
 	}
 	json.NewEncoder(os.Stdout).Encode(status)
