@@ -4,32 +4,56 @@ Touch ID-gated encrypted files for macOS.
 
 AI code editors like Cursor, Windsurf, and Claude Code read your filesystem to provide context — including `.env` files, API keys, and credentials. There's no standard way to prevent this across tools. touchfs solves this at the filesystem level: sensitive files are encrypted at rest and only decrypted when you physically confirm via Touch ID. It works with every editor, CLI tool, and CI script without requiring plugins or API changes, because it operates below the application layer.
 
-Seal files in-place — they become ciphertext on disk. When you need to work with them, mount a virtual filesystem that serves them decrypted, with each file access gated by Touch ID.
-
 - **Transparent** — apps follow symlinks into the virtual filesystem. VSCode, `cat`, `grep`, and everything else just work. Nothing knows touchfs exists.
-- **Crash-safe** — if the process dies mid-mount, encrypted content is preserved in symlink xattrs. The next `touchfs mount` detects broken symlinks and restores your files automatically.
+- **Crash-safe** — if the process dies mid-mount, encrypted content is preserved in symlink xattrs. The next mount detects broken symlinks and restores your files automatically.
 - **Key never on disk** — the AES-256 key lives only in macOS Keychain (hardware-backed on Apple Silicon) and in process memory while mounted. Your password is used once to derive the key and is never stored.
 
 ## Install
+
+### App (recommended)
+
+Download the latest DMG from [Releases](https://github.com/tetratorus/touchfs/releases), open it, and drag TouchFS to Applications. The app handles everything — installs the encryption engine and fuse-t automatically on first launch.
+
+The app runs in the menu bar and protects your files in the background. Touch ID once on launch, then your sealed files are accessible transparently.
+
+### CLI only
 
 ```
 brew tap tetratorus/tap && brew install --cask touchfs
 ```
 
+Requires [fuse-t](https://github.com/macos-fuse-t/fuse-t) (`brew install --cask fuse-t`).
+
 ## Usage
 
+### App
+
+1. Launch TouchFS
+2. Set a password (one-time setup)
+3. Click "Protect Files" to select files to encrypt
+4. Done — files are sealed and served via Touch ID
+
+The app sits in the menu bar. Close the window and it keeps running. Files are protected as long as the app is running. Quit from the menu bar to unmount and restore sealed files.
+
+Use Settings to: find existing sealed files, install the CLI tool, update the engine, or reset everything.
+
+### CLI
+
 ```
-touchfs set                   # Create password (one time setup)
-touchfs seal [-p] <file>      # Encrypt a file in-place
-touchfs unseal [-p] <file>    # Decrypt a sealed file
-touchfs mount [path]          # Serve decrypted files recursively (default: cwd)
-touchfs reset                 # Delete key from Keychain
-touchfs version               # Print version
+touchfs set                       # Create password (one-time setup)
+touchfs seal [-p] <file>          # Encrypt a file in-place
+touchfs unseal [-p] <file>        # Decrypt a sealed file
+touchfs mount [path...]           # Mount FUSE for files and/or directories (default: .)
+touchfs status                    # Check key status (JSON)
+touchfs scan [path]               # Find sealed files in directory (default: ~)
+touchfs recover <file>            # Restore a broken symlink from a crashed mount
+touchfs reset                     # Delete key from Keychain
+touchfs version                   # Print version
 ```
 
 Use `-p` with `seal`/`unseal` to use a password instead of Touch ID.
 
-### Example
+#### Example
 
 ```
 $ touchfs seal ~/project/.env   # .env is now ciphertext on disk
@@ -40,39 +64,50 @@ $ touchfs mount ~/project       # Touch ID prompt → mounts virtual filesystem
 ^C                              # Ctrl+C unmounts and restores .env as ciphertext
 ```
 
-While mounted, `touchfs` runs in the foreground. Sealed files become symlinks that apps follow transparently. When you're done, Ctrl+C unmounts, restores the encrypted files, and wipes the key from memory.
+You can also mount individual files:
 
-## How it actually works
+```
+$ touchfs mount ~/.env ~/keys/api.key ~/project/.env
+```
+
+## How it works
 
 Your password is used once to derive an AES-256 key via PBKDF2 (600k iterations, SHA-256). The key is stored in macOS Keychain with biometric protection — Touch ID is required to retrieve it. The password is never stored.
 
-**Seal** replaces a file's contents with `#touchfs` + base64-encoded ciphertext (AES-256-GCM with random nonce). The file stays in place — same path, same name, just encrypted. Files larger than 100 MB are rejected — if it's that big, it's not a secret.
+**Seal** replaces a file's contents with `#touchfs` + base64-encoded ciphertext (AES-256-GCM with random nonce). The file stays in place — same path, same name, just encrypted. Files larger than 100 MB are rejected.
 
-**Mount** recursively scans the given directory (or cwd) for sealed files and creates a [FUSE](https://github.com/macos-fuse-t/fuse-t) virtual filesystem at `/tmp/touchfs/`. Each sealed file is replaced with a symlink pointing to the mount, and its encrypted contents are stored in the symlink's extended attributes (xattrs) — no extra files created. When an app opens a file, Touch ID is prompted (with a short cooldown to prevent repeated prompts), the content is decrypted in memory, and on close, modified files are re-encrypted and the xattr is updated. Unmounting restores the original sealed files and wipes the key from memory.
+**Mount** scans for sealed files and creates a [FUSE](https://github.com/macos-fuse-t/fuse-t) virtual filesystem at `/tmp/touchfs/`. Each sealed file is replaced with a symlink pointing to the mount, and its encrypted contents are stored in the symlink's extended attributes (xattrs). When an app opens a file, Touch ID is prompted (with a 500ms cooldown), the content is decrypted in memory, and on close, modified files are re-encrypted and the xattr is updated. Unmounting restores the original sealed files.
 
 ## Ignore list
 
-When scanning recursively, touchfs skips these directories by default:
+When scanning directories, touchfs skips these by default:
 
 ```
-.git
-node_modules
-vendor
-__pycache__
-.cache
-.next
-.nuxt
-dist
-build
-.tox
-.venv
-.terraform
+.git  node_modules  vendor  __pycache__  .cache  .next  .nuxt  dist  build  .tox  .venv  .terraform
 ```
 
-To customize, create `~/.config/touchfs/ignore` with one directory name per line. If the file exists, it replaces the defaults entirely — copy the list above as a starting point.
+Customize with `~/.config/touchfs/ignore` (one directory name per line). If the file exists, it replaces the defaults entirely.
 
 ## Build from source
 
+### CLI
+
 ```
-make build
+make build      # Development build (code-signed)
+make dist       # Distribution build (Developer ID signed)
+```
+
+### App
+
+```
+cd app
+xcodegen generate
+xcodebuild -project TouchFS.xcodeproj -scheme TouchFS build
+```
+
+For a signed/notarized release:
+
+```
+cd app
+./release-app.sh v1.0.0
 ```
