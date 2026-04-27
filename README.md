@@ -12,9 +12,9 @@ AI code editors like Cursor, Windsurf, and Claude Code read your filesystem to p
 
 ### App (recommended)
 
-Download the latest DMG from [Releases](https://github.com/tetratorus/touchfs/releases), open it, and drag TouchFS to Applications. The app handles everything — installs the encryption engine and fuse-t automatically on first launch.
+Download the latest DMG from [Releases](https://github.com/tetratorus/touchfs/releases), open it, and drag TouchFS to Applications.
 
-The app runs in the menu bar and protects your files in the background. Touch ID once on launch, then your sealed files are accessible transparently.
+On first launch, the app installs the encryption engine and filesystem driver (fuse-t) automatically. Set a password, protect your files, done.
 
 ### CLI only
 
@@ -28,14 +28,14 @@ Requires [fuse-t](https://github.com/macos-fuse-t/fuse-t) (`brew install --cask 
 
 ### App
 
-1. Launch TouchFS
-2. Set a password (one-time setup)
-3. Click "Protect Files" to select files to encrypt
-4. Done — files are sealed and served via Touch ID
+1. Launch TouchFS — installs dependencies if needed
+2. Set a password (one-time, stored in Keychain behind Touch ID)
+3. Click **Protect Files** to select files to encrypt
+4. Done — files are encrypted on disk, decrypted transparently via Touch ID
 
-The app sits in the menu bar. Close the window and it keeps running. Files are protected as long as the app is running. Quit from the menu bar to unmount and restore sealed files.
+Cmd+Q hides the window — the app keeps running in the menu bar, files stay protected. Quit from the menu bar to stop protection and restore files to their encrypted state.
 
-Use Settings to: find existing sealed files, install the CLI tool, update the engine, or reset everything.
+Settings: change password, find existing protected files, install/uninstall CLI tool, update the engine, or reset everything.
 
 ### CLI
 
@@ -59,7 +59,6 @@ Use `-p` with `seal`/`unseal` to use a password instead of Touch ID.
 $ touchfs seal ~/project/.env   # .env is now ciphertext on disk
 $ touchfs mount ~/project       # Touch ID prompt → mounts virtual filesystem
                                 # .env becomes a symlink to the mount
-                                # sealed files in subfolders are included too
 ...
 ^C                              # Ctrl+C unmounts and restores .env as ciphertext
 ```
@@ -90,24 +89,13 @@ Customize with `~/.config/touchfs/ignore` (one directory name per line). If the 
 
 ## Build from source
 
-### CLI
-
 ```
-make build      # Development build (code-signed)
-make dist       # Distribution build (Developer ID signed)
-```
+# CLI
+make build
 
-### App
+# App
+cd app && xcodegen generate && xcodebuild -project TouchFS.xcodeproj -scheme TouchFS build
 
-```
-cd app
-xcodegen generate
-xcodebuild -project TouchFS.xcodeproj -scheme TouchFS build
-```
-
-For a signed/notarized release:
-
-```
-cd app
-./release-app.sh v1.0.0
+# Release (CLI + App, signed + notarized)
+./release.sh v1.0.0
 ```
