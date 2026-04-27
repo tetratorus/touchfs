@@ -46,6 +46,7 @@ struct TouchFSApp: App {
             Divider()
 
             Button("Quit TouchFS") {
+                (NSApplication.shared.delegate as? AppDelegate)?.quitForReal = true
                 NSApplication.shared.terminate(nil)
             }
         }
@@ -70,14 +71,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Dock Quit and Cmd+Q just close the window and hide dock icon.
+        // Only "Quit TouchFS" from menu bar actually terminates.
+        if !quitForReal {
+            NSApplication.shared.keyWindow?.close()
+            NSApplication.shared.setActivationPolicy(.accessory)
+            return .terminateCancel
+        }
+        return .terminateNow
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // Stop mount on quit — restores sealed files.
         MountService.shared.stop()
     }
+
+    var quitForReal = false
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
