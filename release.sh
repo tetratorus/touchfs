@@ -46,14 +46,17 @@ rm -f TouchFS.zip
 echo "=== Creating DMG ==="
 DMG_NAME="TouchFS-${VERSION}.dmg"
 rm -f "$DMG_NAME"
-STAGING=$(mktemp -d)
-cp -R "$APP" "$STAGING/"
-ln -s /Applications "$STAGING/Applications"
-hdiutil create -volname "TouchFS" -srcfolder "$STAGING" -ov -format UDZO "$DMG_NAME"
-rm -rf "$STAGING"
-codesign --force --sign "$DIST_IDENTITY" "$DMG_NAME"
-xcrun notarytool submit "$DMG_NAME" --keychain-profile touchfs --wait
-xcrun stapler staple "$DMG_NAME"
+create-dmg \
+  --volname "TouchFS" \
+  --window-pos 200 120 \
+  --window-size 600 400 \
+  --icon-size 100 \
+  --icon "TouchFS.app" 150 190 \
+  --app-drop-link 450 190 \
+  --codesign "$DIST_IDENTITY" \
+  --notarize "touchfs" \
+  "$DMG_NAME" \
+  "$APP"
 
 cd ..
 
