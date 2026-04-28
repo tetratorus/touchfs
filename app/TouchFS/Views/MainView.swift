@@ -157,6 +157,7 @@ struct MainView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .disabled(password.isEmpty || settingPassword)
+            .keyboardShortcut(.defaultAction)
             Spacer()
         }
         .frame(maxWidth: .infinity)

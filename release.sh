@@ -48,11 +48,13 @@ DMG_NAME="TouchFS-${VERSION}.dmg"
 rm -f "$DMG_NAME"
 create-dmg \
   --volname "TouchFS" \
+  --background "dmg-background.png" \
   --window-pos 200 120 \
-  --window-size 600 400 \
-  --icon-size 100 \
-  --icon "TouchFS.app" 150 190 \
-  --app-drop-link 450 190 \
+  --window-size 540 380 \
+  --icon-size 128 \
+  --icon "TouchFS.app" 140 170 \
+  --app-drop-link 400 170 \
+  --no-internet-enable \
   --codesign "$DIST_IDENTITY" \
   --notarize "touchfs" \
   "$DMG_NAME" \
