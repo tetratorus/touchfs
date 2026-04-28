@@ -518,7 +518,7 @@ func cmdMount() {
 	for absPath, info := range sealed {
 		info.relPath = absPath
 		fh := sha256.Sum256([]byte(absPath))
-		fuseKey := hex.EncodeToString(fh[:])
+		fuseKey := hex.EncodeToString(fh[:]) + filepath.Ext(absPath)
 		fuseMap[fuseKey] = info
 
 		link := filepath.Join(mountpoint, fuseKey)
