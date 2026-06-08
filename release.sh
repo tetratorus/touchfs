@@ -28,7 +28,7 @@ echo "=== Building Swift app ==="
 cd app
 xcodegen generate
 rm -rf ~/Library/Developer/Xcode/DerivedData/TouchFS-*
-xcodebuild -project TouchFS.xcodeproj -scheme TouchFS -configuration Release CODE_SIGN_IDENTITY="$DIST_IDENTITY" CODE_SIGN_STYLE=Manual clean build
+xcodebuild -project TouchFS.xcodeproj -scheme TouchFS -configuration Release CODE_SIGNING_ALLOWED=NO clean build
 
 BUILD_DIR=$(xcodebuild -project TouchFS.xcodeproj -scheme TouchFS -configuration Release -showBuildSettings 2>/dev/null | grep " BUILD_DIR = " | sed 's/.*= //')
 APP="$BUILD_DIR/Release/TouchFS.app"
