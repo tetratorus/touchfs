@@ -10,7 +10,7 @@ import (
 	"github.com/winfsp/cgofuse/fuse"
 )
 
-const authTTL = 500 * time.Millisecond
+const authTTL = 1 * time.Second
 
 // openFile tracks the state of a single open file descriptor.
 type openFile struct {

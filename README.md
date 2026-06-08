@@ -75,7 +75,7 @@ Your password is used once to derive an AES-256 key via PBKDF2 (600k iterations,
 
 **Seal** replaces a file's contents with `#touchfs` + base64-encoded ciphertext (AES-256-GCM with random nonce). The file stays in place — same path, same name, just encrypted. Files larger than 100 MB are rejected.
 
-**Mount** scans for sealed files and creates a [FUSE](https://github.com/macos-fuse-t/fuse-t) virtual filesystem at `/tmp/touchfs/`. Each sealed file is replaced with a symlink pointing to the mount, and its encrypted contents are stored in the symlink's extended attributes (xattrs). When an app opens a file, Touch ID is prompted (with a 500ms cooldown), the content is decrypted in memory, and on close, modified files are re-encrypted and the xattr is updated. Unmounting restores the original sealed files.
+**Mount** scans for sealed files and creates a [FUSE](https://github.com/macos-fuse-t/fuse-t) virtual filesystem at `/tmp/touchfs/`. Each sealed file is replaced with a symlink pointing to the mount, and its encrypted contents are stored in the symlink's extended attributes (xattrs). When an app opens a file, Touch ID is prompted (with a 1s cooldown), the content is decrypted in memory, and on close, modified files are re-encrypted and the xattr is updated. Unmounting restores the original sealed files.
 
 ## Ignore list
 
